@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Transformación en Tensión</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<main class="app-shell">
+  <section id="start-screen" class="screen active">
+    <div class="hero">
+      <div>
+        <span class="eyebrow">Simulador competitivo · 7S + Cultura Agile</span>
+        <h1>Transformación en Tensión</h1>
+        <p>Diagnostica con las 7S de McKinsey, decide con 8 palancas culturales y administra un presupuesto único durante cuatro rondas.</p>
+      </div>
+      <div class="hero-card">
+        <div class="metric"><span>Rondas</span><strong>4</strong></div>
+        <div class="metric"><span>Tiempo</span><strong>7 min</strong></div>
+        <div class="metric"><span>Presupuesto total</span><strong>120</strong></div>
+      </div>
+    </div>
+
+    <form id="team-form" class="panel form-panel">
+      <label>Nombre del equipo
+        <input id="team-name" maxlength="40" required placeholder="Ej. Los Iteradores" />
+      </label>
+      <label>Código de clase
+        <input id="class-code" maxlength="20" required placeholder="Ej. AGILE01" />
+      </label>
+      <button class="primary" type="submit">Entrar al reto</button>
+      <p class="hint">Todos los equipos deben usar el mismo código para competir en el ranking en vivo.</p>
+    </form>
+  </section>
+
+  <section id="game-screen" class="screen">
+    <header class="topbar">
+      <div>
+        <span class="eyebrow">Equipo <strong id="team-label"></strong></span>
+        <h2 id="round-title">Decide dónde intervenir</h2>
+      </div>
+      <div class="topstats">
+        <span>Ronda <strong id="round-label">1</strong>/4</span>
+        <span>Créditos <strong id="credits-label">120</strong>/120</span>
+        <span id="timer-pill" class="timer-pill">⏱ <strong id="timer-label">07:00</strong></span>
+      </div>
+    </header>
+
+    <section class="panel live-scoreboard" aria-label="Ranking en vivo">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Competencia en tiempo real</span>
+          <h3>Ranking en vivo</h3>
+        </div>
+        <div class="live-actions">
+          <span id="live-status" class="hint">Cargando equipos...</span>
+          <button id="refresh-live-btn" class="secondary refresh-btn" type="button">Actualizar</button>
+        </div>
+      </div>
+      <div id="podium-live" class="podium-live"></div>
+      <div class="table-wrap live-table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Equipo</th><th>Puntaje</th><th>Agile</th><th>Coherencia</th><th>Estado</th></tr></thead>
+          <tbody id="live-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="grid-main">
+      <section>
+        <div class="panel situation-panel">
+          <span class="eyebrow">Situación de la ronda</span>
+          <h3 id="situation-title"></h3>
+          <p id="situation-context"></p>
+          <div class="dilemma"><strong>Dilema:</strong> <span id="situation-dilemma"></span></div>
+        </div>
+
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <h3>Diagnóstico 7S de McKinsey</h3>
+              <p>Usa las señales para leer qué partes del sistema están desalineadas.</p>
+            </div>
+            <span id="agile-badge" class="badge">Agile 31/100</span>
+          </div>
+          <div id="scores-grid" class="scores-grid"></div>
+          <div class="bar-block">
+            <div class="bar-label"><span>Coherencia sistémica</span><strong id="coherence-label">46%</strong></div>
+            <div class="bar"><div id="coherence-bar"></div></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <h3>Señales del diagnóstico</h3>
+              <p id="signals-caption">Ronda 1 · Lee antes de intervenir.</p>
+            </div>
+          </div>
+          <div id="signals" class="signal-list"></div>
+        </div>
+
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <h3>Tablero de evolución</h3>
+              <p>Observa cómo cambian los indicadores con cada decisión.</p>
+            </div>
+          </div>
+          <div class="trend-grid">
+            <div class="trend-card"><span>Cultura Agile</span><strong id="trend-agile-main">31/100</strong><small id="trend-agile-delta">Sin cambios todavía</small></div>
+            <div class="trend-card"><span>Coherencia</span><strong id="trend-coherence-main">46%</strong><small id="trend-coherence-delta">Sin cambios todavía</small></div>
+            <div class="trend-card"><span>Créditos restantes</span><strong id="trend-credits-main">120</strong><small>Presupuesto total para las 4 rondas</small></div>
+          </div>
+          <div id="round-board" class="round-board empty">Aún no hay rondas ejecutadas.</div>
+        </div>
+
+        <div class="panel">
+          <h3>Historial de decisiones</h3>
+          <div id="history" class="history empty">Aún no has ejecutado intervenciones.</div>
+        </div>
+      </section>
+
+      <aside>
+        <div class="lever-sticky">
+          <div class="panel lever-panel">
+            <div class="section-head">
+              <div>
+                <h3>8 palancas culturales</h3>
+                <p>Selecciona máximo 3. El presupuesto no se recarga.</p>
+              </div>
+              <span id="selection-label" class="small">0 seleccionadas</span>
+            </div>
+            <div id="levers-grid" class="lever-grid"></div>
+
+            <label class="reason-label" for="reason-input">Justifica la decisión en una frase</label>
+            <textarea id="reason-input" maxlength="180" rows="3" placeholder="Sintetiza por qué estas palancas responden al diagnóstico..."></textarea>
+            <div class="reason-meta"><span>Mínimo 20 caracteres · máximo 180</span><strong id="reason-count">0/180</strong></div>
+
+            <button id="execute-btn" class="primary wide" type="button">Ejecutar decisión</button>
+            <p id="validation-msg" class="validation"></p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <h3>Ranking en vivo</h3>
+              <p>Se actualiza automáticamente.</p>
+            </div>
+            <button id="refresh-live-btn" class="secondary refresh-btn" type="button">Actualizar</button>
+          </div>
+          <div id="live-status" class="hint">Cargando...</div>
+          <div class="table-wrap compact-table">
+            <table>
+              <thead><tr><th>#</th><th>Equipo</th><th>Puntaje</th><th>Estado</th></tr></thead>
+              <tbody id="live-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div id="round-footer" class="round-footer hidden" aria-live="polite">
+      <div>
+        <strong id="footer-result-title">Ronda resuelta</strong>
+        <span id="footer-result-text"></span>
+      </div>
+      <button id="next-btn" class="primary next-large" type="button">Continuar a la ronda 2</button>
+    </div>
+  </section>
+
+  <section id="finish-screen" class="screen">
+    <div class="finish-card panel">
+      <span class="eyebrow">Transformación finalizada</span>
+      <h2 id="finish-title">Resultado</h2>
+      <div class="final-score" id="final-score">0</div>
+      <p id="finish-copy"></p>
+      <div class="final-metrics">
+        <div><span>Cultura Agile</span><strong id="final-agile">0</strong></div>
+        <div><span>Coherencia 7S</span><strong id="final-coherence">0%</strong></div>
+        <div><span>Créditos restantes</span><strong id="final-credits">0</strong></div>
+      </div>
+      <div class="actions">
+        <button id="leaderboard-btn" class="primary" type="button">Ver ranking completo</button>
+        <button id="restart-btn" class="secondary" type="button">Jugar de nuevo</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="leaderboard-screen" class="screen">
+    <header class="topbar">
+      <div><span class="eyebrow">Código <strong id="leaderboard-code"></strong></span><h2>Ranking de transformación</h2></div>
+      <button id="back-finish-btn" class="secondary" type="button">Volver</button>
+    </header>
+    <div class="panel">
+      <div id="leaderboard-status" class="hint">Cargando ranking…</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Equipo</th><th>Puntaje</th><th>Agile</th><th>Coherencia</th><th>Créditos</th><th>Estado</th></tr></thead>
+          <tbody id="leaderboard-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
