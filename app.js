@@ -15,9 +15,14 @@
         "📊 La estrategia Agile existe, pero los sistemas siguen premiando cumplimiento individual.",
         "🧭 Los líderes promueven experimentación, aunque penalizan errores visibles."
       ],
-      preferred:["architecture","process","leadership"],
-      pressure:{Structure:-1,Systems:-1},
-      consequence:"La burocracia se mantiene y aumenta la distancia entre el discurso y la operación."
+      relevance:{strategy:1,leadership:2,talent:0,culture:0,architecture:3,workspace:-1,process:3,change:1},
+      unresolved:{Structure:-1,Systems:-1},
+      misaligned:{"Shared Values":-1,Systems:-1},
+      synergies:[
+        {needs:["architecture","process"],delta:{Structure:1,Systems:1},text:"Arquitectura + procesos reducen fricción estructural y burocrática."},
+        {needs:["leadership","architecture"],delta:{Style:1},text:"Liderazgo + arquitectura hacen creíble la autonomía."}
+      ],
+      consequence:"La burocracia permanece y aumenta la distancia entre el discurso de autonomía y la experiencia real."
     },
     {
       title:"La resistencia de los mandos medios",
@@ -28,8 +33,13 @@
         "🤝 Los equipos reportan ambigüedad sobre responsabilidades y límites de decisión.",
         "📣 La narrativa del cambio es conocida, pero no todos los líderes la modelan."
       ],
-      preferred:["leadership","change","culture"],
-      pressure:{Style:-1,Structure:-1},
+      relevance:{strategy:1,leadership:3,talent:1,culture:2,architecture:1,workspace:-1,process:0,change:3},
+      unresolved:{Style:-1,Structure:-1},
+      misaligned:{Style:-1,"Shared Values":-1},
+      synergies:[
+        {needs:["leadership","change"],delta:{Style:1,"Shared Values":1},text:"Liderazgo + gestión de cambio reducen resistencia y refuerzan credibilidad."},
+        {needs:["leadership","culture"],delta:{"Shared Values":1},text:"Liderazgo + prácticas culturales convierten el discurso en comportamientos observables."}
+      ],
       consequence:"La resistencia de liderazgo se convierte en cuello de botella y la autonomía pierde credibilidad."
     },
     {
@@ -41,8 +51,13 @@
         "🧪 Hay interés por experimentar, pero faltan capacidades prácticas en varios equipos.",
         "🪑 Algunos espacios y herramientas siguen dificultando colaboración y trabajo transversal."
       ],
-      preferred:["talent","culture","workspace","change"],
-      pressure:{Staff:-1,Skills:-1},
+      relevance:{strategy:1,leadership:1,talent:3,culture:2,architecture:-1,workspace:2,process:0,change:3},
+      unresolved:{Staff:-1,Skills:-1},
+      misaligned:{Staff:-1,"Shared Values":-1},
+      synergies:[
+        {needs:["talent","change"],delta:{Skills:1,Staff:1},text:"Talento + gestión de cambio aumentan capacidad sin sobrecargar el sistema."},
+        {needs:["culture","workspace"],delta:{Staff:1},text:"Prácticas culturales + espacios adecuados reducen fricción cotidiana."}
+      ],
       consequence:"La sobrecarga reduce energía, aprendizaje y disposición para sostener nuevas prácticas."
     },
     {
@@ -54,8 +69,13 @@
         "📚 Algunos equipos aprendieron, pero otros todavía dependen de personas clave.",
         "🔄 Procesos, métricas y estructuras no están igual de alineados en toda la organización."
       ],
-      preferred:["strategy","process","architecture","change"],
-      pressure:{Systems:-1,"Shared Values":-1},
+      relevance:{strategy:3,leadership:1,talent:1,culture:-1,architecture:3,workspace:0,process:3,change:2},
+      unresolved:{Systems:-1,"Shared Values":-1},
+      misaligned:{Systems:-1,Structure:-1},
+      synergies:[
+        {needs:["strategy","process"],delta:{Strategy:1,Systems:1},text:"Estrategia + procesos convierten el escalamiento en una decisión operable."},
+        {needs:["architecture","change"],delta:{Structure:1,"Shared Values":1},text:"Arquitectura + gestión de cambio ayudan a escalar sin perder apropiación."}
+      ],
       consequence:"La organización escala prácticas sin consolidar el sistema y aumenta el riesgo de retroceso."
     }
   ];
@@ -137,7 +157,7 @@
     const el=$('#history');
     if(!state.history.length){el.className='history empty';el.textContent='Aún no has ejecutado intervenciones.';return;}
     el.className='history';
-    el.innerHTML=state.history.map(h=>`<div class="history-item"><strong>Ronda ${h.round} · ${h.title}</strong><br>${h.levers.length?h.levers.join(', '):'Sin intervención'}<br><span class="small">${escapeHtml(h.reason)} · Agile ${h.agile} (${fmt(h.deltaAgile)}) · Coherencia ${h.coherence}% (${fmt(h.deltaCoherence,true)})</span></div>`).join('');
+    el.innerHTML=state.history.map(h=>`<div class="history-item"><strong>Ronda ${h.round} · ${h.title}</strong><br>${h.levers.length?h.levers.join(', '):'Sin intervención'}<br><span class="small"><strong>${escapeHtml(h.outcome)}</strong> · ${escapeHtml(h.reason)} · Agile ${h.agile} (${fmt(h.deltaAgile)}) · Coherencia ${h.coherence}% (${fmt(h.deltaCoherence,true)})</span></div>`).join('');
   }
 
   function renderBoard(){
@@ -168,12 +188,63 @@
     return true;
   }
 
-  function applyPressure(round,matchCount){
-    if(matchCount>=2) return {level:'resuelta',delta:{},text:'La intervención estuvo bien alineada con la tensión principal y evitó que el problema escalara.'};
-    const factor=matchCount===1?0.5:1;
-    const delta={}; Object.entries(round.pressure).forEach(([k,v])=>delta[k]=Math.round(v*factor)||v);
-    Object.entries(delta).forEach(([k,v])=>state.scores[k]=clamp(state.scores[k]+v));
-    return matchCount===1?{level:'parcial',delta,text:'La intervención atendió parte del problema, pero quedó una tensión relevante sin resolver.'}:{level:'no resuelta',delta,text:round.consequence};
+  function applyDelta(delta){
+    Object.entries(delta||{}).forEach(([k,v])=>state.scores[k]=clamp(state.scores[k]+v));
+  }
+
+  function evaluateDecision(round, selectedIds){
+    const rel = selectedIds.map(id=>round.relevance[id] ?? 0);
+    const totalRelevance = rel.reduce((a,b)=>a+b,0);
+    const strong = rel.filter(v=>v>=2).length;
+    const counterproductive = rel.filter(v=>v<0).length;
+    const synergyNotes = [];
+
+    let level, text;
+
+    if(selectedIds.length===0){
+      level="sin intervención";
+      applyDelta(round.unresolved);
+      applyDelta(round.misaligned);
+      text=`No hubo intervención. ${round.consequence}`;
+    } else if(counterproductive>=1 && strong===0){
+      level="contraproducente";
+      applyDelta(round.unresolved);
+      applyDelta(round.misaligned);
+      text="La decisión consume recursos, pero no responde al problema central. El sistema se deteriora.";
+    } else if(totalRelevance<=1){
+      level="baja pertinencia";
+      applyDelta(round.unresolved);
+      applyDelta(round.misaligned);
+      text="La intervención está demasiado lejos del diagnóstico. El problema continúa y aparecen pérdidas explícitas.";
+    } else if(strong===0 || totalRelevance<=3){
+      level="parcial";
+      applyDelta(round.unresolved);
+      text="La intervención atiende una parte del problema, pero deja una tensión relevante sin resolver.";
+    } else {
+      level="alineada";
+      text="La decisión está bien alineada con el diagnóstico y contiene la tensión principal.";
+    }
+
+    // Sobreintervención: usar 3 palancas no es automáticamente mejor.
+    const avg = selectedIds.length ? totalRelevance/selectedIds.length : 0;
+    let overIntervention=false;
+    if(selectedIds.length===3 && avg<2){
+      overIntervention=true;
+      applyDelta({Staff:-1});
+      text += " Además, la sobreintervención genera fatiga y dispersión.";
+    }
+
+    // Sinergias contextuales.
+    for(const s of round.synergies||[]){
+      if(s.needs.every(id=>selectedIds.includes(id))){
+        applyDelta(s.delta);
+        synergyNotes.push(s.text);
+      }
+    }
+
+    if(synergyNotes.length) text += " Sinergia: " + synergyNotes.join(" ");
+
+    return {level,text,totalRelevance,strong,counterproductive,overIntervention,synergyNotes};
   }
 
   function resolveRound(timedOut=false){
@@ -187,13 +258,19 @@
     const cost=totalCost(); state.credits-=cost;
     chosen.forEach(l=>Object.entries(l.effects).forEach(([k,d])=>state.scores[k]=clamp(state.scores[k]+d)));
 
-    const matchCount=state.selected.filter(id=>r.preferred.includes(id)).length;
-    const outcome=applyPressure(r,matchCount);
+    const outcome=evaluateDecision(r,state.selected);
     const after=metrics();
-    const h={round:state.round,title:r.title,levers:chosen.map(x=>x.name),reason,agile:after.agile,coherence:after.coherence,creditsLeft:state.credits,deltaAgile:after.agile-before.agile,deltaCoherence:after.coherence-before.coherence,outcome:outcome.level,timedOut};
+    const h={round:state.round,title:r.title,levers:chosen.map(x=>x.name),reason,agile:after.agile,coherence:after.coherence,creditsLeft:state.credits,deltaAgile:after.agile-before.agile,deltaCoherence:after.coherence-before.coherence,outcome:outcome.level,timedOut,relevance:outcome.totalRelevance,synergies:outcome.synergyNotes};
     state.history.push(h);
 
-    $('#footer-result-title').textContent=timedOut?'⏱ Tiempo agotado':'Ronda resuelta';
+    const labels={
+      'alineada':'✅ Decisión alineada',
+      'parcial':'🟡 Decisión parcialmente alineada',
+      'baja pertinencia':'🔻 Decisión de baja pertinencia',
+      'contraproducente':'⚠️ Decisión contraproducente',
+      'sin intervención':'⛔ Sin intervención'
+    };
+    $('#footer-result-title').textContent=timedOut?'⏱ Tiempo agotado':(labels[outcome.level]||'Ronda resuelta');
     $('#footer-result-text').textContent=`${outcome.text} Agile ${fmt(h.deltaAgile)} · Coherencia ${fmt(h.deltaCoherence,true)} · Créditos ${state.credits}.`;
     $('#round-footer').classList.remove('hidden');
     $('#execute-btn').disabled=true; $('#reason-input').disabled=true; state.selected=[];
