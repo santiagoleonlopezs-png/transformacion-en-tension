@@ -1,10 +1,11 @@
 import {rounds,levers,metrics,roomLink,decisionsCsv} from './game.mjs';
+import * as FacAuth from './facilitator-auth.mjs';
 
 const $=selector=>document.querySelector(selector);
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const STORE='tension.rooms.v2';
 const cfg=window.GAME_CONFIG||{};
-const state={screen:'start-screen',team:null,credential:null,host:null,hostData:null,selected:[],busy:false,poll:null,timer:null,offset:0,refreshing:false};
+const state={screen:'start-screen',team:null,credential:null,host:null,hostData:null,selected:[],busy:false,poll:null,timer:null,offset:0,refreshing:false,facilitator:null,rooms:[],authEpoch:0};
 let local;
 try{local=JSON.parse(localStorage.getItem(STORE)||'{"hosts":[],"teams":[],"drafts":{}}');if(!Array.isArray(local.hosts)||!Array.isArray(local.teams))throw Error();local.drafts||={};}catch{local={hosts:[],teams:[],drafts:{}};}
 function persist(){try{localStorage.setItem(STORE,JSON.stringify(local));}catch{throw Error('Este navegador no permite conservar el acceso. Habilita el almacenamiento para crear o retomar una sala.');}}
@@ -24,42 +25,66 @@ async function api(action,code,key=null,data={}){
     throw error;
   }finally{clearTimeout(timeout);}
 }
+async function facApi(action,code=null,data={}){
+  if(!state.facilitator)throw Error('Inicia sesión como facilitador.');
+  const uid=state.facilitator.uid,epoch=state.authEpoch,token=await FacAuth.getToken(uid);
+  const response=await fetch(`${cfg.SUPABASE_URL}/functions/v1/tension-facilitator`,{method:'POST',headers:{apikey:cfg.SUPABASE_ANON_KEY,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({action,code,data}),signal:AbortSignal.timeout(15000),cache:'no-store'});
+  if(epoch!==state.authEpoch||state.facilitator?.uid!==uid)throw Error('La sesión cambió. Vuelve a iniciar sesión.');
+  const result=await response.json();
+  if(!response.ok){
+    if(response.status===401){clearFacilitator();show('login-screen');}
+    throw Error(result.message||'No se pudo completar la solicitud.');
+  }
+  return result;
+}
+function clearFacilitator(){
+  state.authEpoch++;state.facilitator=null;state.rooms=[];state.host=null;state.hostData=null;
+  $('#saved-rooms').replaceChildren();$('#host-teams').replaceChildren();$('#share-link').value='';$('#room-qr').replaceChildren();$('#fac-email').textContent='';
+}
+async function loadRooms(){state.rooms=await facApi('list');renderSavedRooms();}
+async function enterFacilitator(){
+  show('login-screen');$('#login-message').textContent='Comprobando sesión…';
+  try{const user=await FacAuth.restore();if(!user){$('#login-message').textContent='';return;}state.facilitator=user;state.authEpoch++;await loadRooms();show('fac-screen');$('#login-message').textContent='';}
+  catch(error){clearFacilitator();$('#login-message').textContent=FacAuth.authError(error);}
+}
 function show(id){
+  if(['fac-screen','host-screen'].includes(id)&&!state.facilitator)id='login-screen';
   clearInterval(state.poll);clearInterval(state.timer);state.poll=null;state.timer=null;state.screen=id;
   document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('active',el.id===id));
-  $('#facilitator-btn').hidden=id==='fac-screen'||id==='host-screen';
+  $('#facilitator-btn').hidden=['fac-screen','host-screen','login-screen'].includes(id);
+  $('#fac-session').classList.toggle('hidden',!state.facilitator||!['fac-screen','host-screen'].includes(id));
+  $('#fac-email').textContent=state.facilitator?.email||'';
   window.scrollTo({top:0,behavior:'instant'});
   if(id==='game-screen'||id==='finish-screen'){refreshGame();state.poll=setInterval(refreshGame,4000);if(id==='game-screen')state.timer=setInterval(tick,500);}
   if(id==='host-screen')state.poll=setInterval(refreshHost,4000);
 }
 function setBusy(button,busy){button.disabled=busy;button.setAttribute('aria-busy',String(busy));}
-function localHost(code){return local.hosts.find(x=>x.code===code);}
-function saveHost(host){const index=local.hosts.findIndex(x=>x.code===host.code);if(index<0)local.hosts.unshift(host);else local.hosts[index]=host;persist();}
 function renderSavedRooms(){
   const box=$('#saved-rooms');box.replaceChildren();
-  if(!local.hosts.length){box.innerHTML='<p class="empty">Todavía no has creado salas en este navegador.</p>';return;}
-  for(const host of local.hosts){
+  $('#legacy-recovery').classList.toggle('hidden',!local.hosts.length);
+  if(!state.rooms.length){box.innerHTML='<p class="empty">Todavía no has creado salas con esta cuenta.</p>';return;}
+  for(const room of state.rooms){
     const row=document.createElement('div');row.className='saved-room';
-    row.innerHTML=`<div><strong>${esc(host.title)}</strong><span>${esc(host.code)}</span></div>`;
+    row.innerHTML=`<div><strong>${esc(room.title)}</strong><span>${esc(room.code)}</span></div>`;
     const button=document.createElement('button');button.className='secondary';button.textContent='Abrir';
-    button.onclick=async()=>{setBusy(button,true);try{await openHost(host);}catch(e){row.querySelector('span').textContent=e.message;}finally{setBusy(button,false);}};
+    button.onclick=async()=>{setBusy(button,true);try{await openHost(room);}catch(error){row.querySelector('span').textContent=error.message;}finally{setBusy(button,false);}};
     row.append(button);box.append(row);
   }
 }
 async function openHost(host){
-  const data=await api('host',host.code,host.key);state.host=host;state.hostData=data;
-  saveHost({...host,title:data.room.title});$('#host-title').textContent=data.room.title;
+  const data=await facApi('host',host.code);state.host=host;state.hostData=data;
+  $('#host-title').textContent=data.room.title;
   $('#share-code').textContent=host.code;
   const link=roomLink(host.code,location.href);$('#share-link').value=link;$('#room-qr').replaceChildren();
   if(window.QRCode)new window.QRCode($('#room-qr'),{text:link,width:160,height:160,colorDark:'#0b1224',colorLight:'#ffffff',correctLevel:window.QRCode.CorrectLevel.M});
   else $('#room-qr').textContent='Usa el enlace directo';
   $('#share-message').textContent='Código, enlace y QR llevan a esta misma sala.';
-  $('#key-message').textContent='';renderHost();show('host-screen');
+  renderHost();show('host-screen');
 }
 async function refreshHost(){
   if(state.screen!=='host-screen'||state.refreshing||!state.host)return;
   state.refreshing=true;const code=state.host.code;
-  try{const data=await api('host',code,state.host.key);if(state.screen!=='host-screen'||state.host.code!==code)return;state.hostData=data;renderHost();}
+  try{const data=await facApi('host',code);if(state.screen!=='host-screen'||state.host.code!==code)return;state.hostData=data;renderHost();}
   catch(e){if(state.screen==='host-screen')$('#host-status').textContent=`No se pudo actualizar: ${e.message}`;}
   finally{state.refreshing=false;}
 }
@@ -171,16 +196,24 @@ async function refreshGame(){
 async function copy(text){if(!navigator.clipboard?.writeText)throw Error('No se pudo copiar automáticamente. Selecciona y copia el enlace de la sala.');await navigator.clipboard.writeText(text);}
 const invite=()=>`Te invito a Transformación en tensión.\nSala: ${state.hostData.room.title}\nCódigo: ${state.host.code}\nEntra aquí: ${$('#share-link').value}`;
 
-$('#facilitator-btn').onclick=()=>{renderSavedRooms();show('fac-screen');};
+$('#facilitator-btn').onclick=enterFacilitator;
+$('#login-back').onclick=()=>show('start-screen');
+$('#fac-login-form').onsubmit=async event=>{
+  event.preventDefault();const button=$('#fac-login-submit');setBusy(button,true);$('#login-message').textContent='Validando acceso…';
+  try{const user=await FacAuth.signIn($('#fac-login-email').value.trim(),$('#fac-login-password').value);state.facilitator=user;state.authEpoch++;await loadRooms();$('#fac-login-password').value='';$('#login-message').textContent='';show('fac-screen');}
+  catch(error){clearFacilitator();$('#login-message').textContent=FacAuth.authError(error);show('login-screen');}
+  finally{setBusy(button,false);}
+};
+$('#fac-signout').onclick=async()=>{clearFacilitator();show('login-screen');$('#login-message').textContent='Sesión cerrada.';try{await FacAuth.signOut();}catch(error){$('#login-message').textContent=FacAuth.authError(error);}};
 $('[data-home]').onclick=()=>show('start-screen');
-$('#back-rooms').onclick=()=>{renderSavedRooms();show('fac-screen');};
+$('#back-rooms').onclick=async()=>{try{await loadRooms();show('fac-screen');}catch(error){$('#host-status').textContent=error.message;}};
 $('#room-form').onsubmit=async event=>{
   event.preventDefault();const code=normalizeCode($('#new-code').value),title=$('#room-title').value.trim(),button=$('#create-room-btn');
   if(!validCode(code))return;setBusy(button,true);$('#create-message').textContent='Creando sala…';
-  try{const host=localHost(code)||{code,title,key:randomKey()};saveHost(host);await api('create',code,host.key,{title});await openHost(host);$('#create-message').textContent='';}
-  catch(e){$('#create-message').textContent=e.message;}finally{setBusy(button,false);}
+  try{const room=await facApi('create',code,{title});await openHost(room);$('#create-message').textContent='';}
+  catch(error){$('#create-message').textContent=error.message;}finally{setBusy(button,false);}
 };
-$('#recover-form').onsubmit=async event=>{event.preventDefault();const button=event.submitter;setBusy(button,true);try{await openHost({code:normalizeCode($('#recover-code').value),key:$('#recover-key').value.trim(),title:''});$('#recover-key').value='';$('#recover-message').textContent='';}catch(e){$('#recover-message').textContent=e.message;}finally{setBusy(button,false);}};
+$('#recover-form').onsubmit=async event=>{event.preventDefault();const button=event.submitter;setBusy(button,true);try{const room=await facApi('claim',normalizeCode($('#recover-code').value),{key:$('#recover-key').value.trim()});$('#recover-key').value='';await loadRooms();await openHost(room);$('#recover-message').textContent='';}catch(error){$('#recover-message').textContent=error.message;}finally{setBusy(button,false);}};
 $('#team-form').onsubmit=async event=>{
   event.preventDefault();const code=normalizeCode($('#class-code').value),name=$('#team-name').value.trim(),button=$('#join-btn');if(!validCode(code)||!name)return;
   setBusy(button,true);$('#join-message').textContent='Conectando con tu sala…';
@@ -195,10 +228,9 @@ $('#execute-btn').onclick=()=>executeDecision(false);$('#next-btn').onclick=next
 $('#reason-input').oninput=event=>{$('#reason-count').textContent=`${event.target.value.length}/180`;$('#validation-msg').textContent='';saveDraft();};
 $('#team-filter').onchange=renderHost;$('#round-filter').onchange=renderHost;
 $('#host-refresh').onclick=refreshHost;
-$('#toggle-room').onclick=async()=>{const button=$('#toggle-room');setBusy(button,true);try{state.hostData=await api('status',state.host.code,state.host.key,{status:state.hostData.room.status==='open'?'closed':'open'});renderHost();}catch(e){$('#host-status').textContent=e.message;}finally{setBusy(button,false);}};
+$('#toggle-room').onclick=async()=>{const button=$('#toggle-room');setBusy(button,true);try{state.hostData=await facApi('status',state.host.code,{status:state.hostData.room.status==='open'?'closed':'open'});renderHost();}catch(e){$('#host-status').textContent=e.message;}finally{setBusy(button,false);}};
 $('#copy-invite').onclick=async()=>{try{await copy(invite());$('#share-message').textContent='Invitación copiada con el código y el enlace directo.';}catch(e){$('#share-message').textContent=e.message;$('#share-link').select();}};
 $('#share-invite').onclick=async()=>{try{if(navigator.share){await navigator.share({title:'Transformación en tensión',text:`Sala: ${state.hostData.room.title}\nCódigo: ${state.host.code}`,url:$('#share-link').value});$('#share-message').textContent='Invitación compartida.';}else{await copy(invite());$('#share-message').textContent='Invitación copiada. Pégala en WhatsApp, correo o el canal de tu grupo.';}}catch(e){if(e.name!=='AbortError')$('#share-message').textContent=e.message;}};
-$('#copy-host-key').onclick=async()=>{try{await copy(state.host.key);$('#key-message').textContent='Clave privada copiada. Guárdala para recuperar el panel desde otro dispositivo.';}catch(e){$('#key-message').textContent=e.message;}};
 $('#export-decisions').onclick=()=>{const blob=new Blob([decisionsCsv(state.hostData.room,state.hostData.teams)],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`decisiones-${state.host.code}.csv`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);};
 $('#review-decisions').onclick=()=>$('#finish-history').classList.toggle('hidden');
 $('#finish-home').onclick=()=>show('start-screen');
@@ -208,3 +240,5 @@ const prefilled=normalizeCode(new URL(location.href).searchParams.get('sala')||'
 if(validCode(prefilled)){$('#class-code').value=prefilled;const saved=local.teams.find(t=>t.code===prefilled);if(saved)$('#team-name').value=saved.name;$('#class-code').oninput();}
 window.addEventListener('online',()=>{state.retryAfter=0;if(state.screen==='host-screen')refreshHost();else refreshGame();});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(state.screen==='host-screen')refreshHost();else{refreshGame();tick();}}});
+
+try{FacAuth.observe(user=>{if(state.facilitator&&(!user||user.uid!==state.facilitator.uid)){clearFacilitator();if(['fac-screen','host-screen'].includes(state.screen)){show('login-screen');$('#login-message').textContent='Tu sesión cambió. Inicia sesión para continuar.';}}});}catch{/* Login reports a loading error when requested; participant access remains available. */}
