@@ -1,324 +1,210 @@
-(() => {
-  const ROUND_SECONDS = 7 * 60;
-  const STARTING_CREDITS = 120;
-  const MIN_REASON = 20;
-  const MAX_REASON = 180;
-  const initialScores = { Strategy:4, Structure:2, Systems:1, "Shared Values":2, Skills:3, Style:1, Staff:4 };
+import {rounds,levers,metrics,roomLink,decisionsCsv} from './game.mjs';
 
-  const rounds = [
-    {
-      title:"La promesa de autonomía",
-      context:"La organización anunció una transformación Agile. Los equipos escuchan mensajes de autonomía, pero continúan dependiendo de múltiples aprobaciones y controles.",
-      dilemma:"¿Cómo reducir la distancia entre el discurso de autonomía y la forma real de trabajar?",
-      signals:[
-        "💬 ‘Nos dicen que seamos autónomos, pero todo necesita aprobación.’",
-        "📊 La estrategia Agile existe, pero los sistemas siguen premiando cumplimiento individual.",
-        "🧭 Los líderes promueven experimentación, aunque penalizan errores visibles."
-      ],
-      relevance:{strategy:1,leadership:2,talent:0,culture:0,architecture:3,workspace:-1,process:3,change:1},
-      unresolved:{Structure:-1,Systems:-1},
-      misaligned:{"Shared Values":-1,Systems:-1},
-      synergies:[
-        {needs:["architecture","process"],delta:{Structure:1,Systems:1},text:"Arquitectura + procesos reducen fricción estructural y burocrática."},
-        {needs:["leadership","architecture"],delta:{Style:1},text:"Liderazgo + arquitectura hacen creíble la autonomía."}
-      ],
-      consequence:"La burocracia permanece y aumenta la distancia entre el discurso de autonomía y la experiencia real."
-    },
-    {
-      title:"La resistencia de los mandos medios",
-      context:"Los primeros equipos piloto mejoraron tiempos de respuesta. Sin embargo, algunos mandos medios sienten que la autonomía reduce su control y empiezan a frenar decisiones.",
-      dilemma:"¿Cómo sostener la autonomía sin romper la coordinación ni convertir el cambio en una lucha de poder?",
-      signals:[
-        "🧱 Algunos líderes vuelven a centralizar decisiones que ya habían delegado.",
-        "🤝 Los equipos reportan ambigüedad sobre responsabilidades y límites de decisión.",
-        "📣 La narrativa del cambio es conocida, pero no todos los líderes la modelan."
-      ],
-      relevance:{strategy:1,leadership:3,talent:1,culture:2,architecture:1,workspace:-1,process:0,change:3},
-      unresolved:{Style:-1,Structure:-1},
-      misaligned:{Style:-1,"Shared Values":-1},
-      synergies:[
-        {needs:["leadership","change"],delta:{Style:1,"Shared Values":1},text:"Liderazgo + gestión de cambio reducen resistencia y refuerzan credibilidad."},
-        {needs:["leadership","culture"],delta:{"Shared Values":1},text:"Liderazgo + prácticas culturales convierten el discurso en comportamientos observables."}
-      ],
-      consequence:"La resistencia de liderazgo se convierte en cuello de botella y la autonomía pierde credibilidad."
-    },
-    {
-      title:"Fatiga de transformación",
-      context:"La transformación avanza, pero se acumulan iniciativas, reuniones y nuevos rituales. Parte de la organización empieza a sentir cansancio y pérdida de foco.",
-      dilemma:"¿Cómo sostener el cambio sin saturar a las personas ni convertir Agile en una colección de ceremonias?",
-      signals:[
-        "😮‍💨 Las personas reportan fatiga y demasiadas iniciativas simultáneas.",
-        "🧪 Hay interés por experimentar, pero faltan capacidades prácticas en varios equipos.",
-        "🪑 Algunos espacios y herramientas siguen dificultando colaboración y trabajo transversal."
-      ],
-      relevance:{strategy:1,leadership:1,talent:3,culture:2,architecture:-1,workspace:2,process:0,change:3},
-      unresolved:{Staff:-1,Skills:-1},
-      misaligned:{Staff:-1,"Shared Values":-1},
-      synergies:[
-        {needs:["talent","change"],delta:{Skills:1,Staff:1},text:"Talento + gestión de cambio aumentan capacidad sin sobrecargar el sistema."},
-        {needs:["culture","workspace"],delta:{Staff:1},text:"Prácticas culturales + espacios adecuados reducen fricción cotidiana."}
-      ],
-      consequence:"La sobrecarga reduce energía, aprendizaje y disposición para sostener nuevas prácticas."
-    },
-    {
-      title:"¿Escalar o consolidar?",
-      context:"La alta dirección quiere extender Agile a toda la organización. Los pilotos muestran resultados, pero todavía existen diferencias importantes entre áreas y sistemas.",
-      dilemma:"¿Conviene escalar ya o consolidar primero las condiciones que hacen sostenible la cultura?",
-      signals:[
-        "🚀 El comité directivo pide expansión rápida y resultados visibles.",
-        "📚 Algunos equipos aprendieron, pero otros todavía dependen de personas clave.",
-        "🔄 Procesos, métricas y estructuras no están igual de alineados en toda la organización."
-      ],
-      relevance:{strategy:3,leadership:1,talent:1,culture:-1,architecture:3,workspace:0,process:3,change:2},
-      unresolved:{Systems:-1,"Shared Values":-1},
-      misaligned:{Systems:-1,Structure:-1},
-      synergies:[
-        {needs:["strategy","process"],delta:{Strategy:1,Systems:1},text:"Estrategia + procesos convierten el escalamiento en una decisión operable."},
-        {needs:["architecture","change"],delta:{Structure:1,"Shared Values":1},text:"Arquitectura + gestión de cambio ayudan a escalar sin perder apropiación."}
-      ],
-      consequence:"La organización escala prácticas sin consolidar el sistema y aumenta el riesgo de retroceso."
-    }
-  ];
-
-  const levers = [
-    {id:"strategy", name:"Estrategia", cost:15, desc:"Definir qué debe suceder y alinear proyectos e iniciativas con objetivos culturales.", effects:{Strategy:2,"Shared Values":1}},
-    {id:"leadership", name:"Liderazgo", cost:20, desc:"Alinear comportamientos, decisiones y estilo de liderazgo con la cultura deseada.", effects:{Style:2,"Shared Values":1}},
-    {id:"talent", name:"Prácticas de Talento Humano", cost:20, desc:"Alinear selección, desarrollo, desempeño y reconocimiento con la cultura.", effects:{Skills:2,Staff:1}},
-    {id:"culture", name:"Prácticas Culturales", cost:15, desc:"Instalar rituales, símbolos, conversaciones y hábitos que refuercen la cultura.", effects:{"Shared Values":2,Style:1}},
-    {id:"architecture", name:"Arquitectura organizacional", cost:25, desc:"Ajustar estructura, roles, responsabilidades y flujo de decisiones.", effects:{Structure:2,Systems:1}},
-    {id:"workspace", name:"Espacio de trabajo", cost:10, desc:"Diseñar espacios físicos o digitales que favorezcan colaboración y nuevas dinámicas.", effects:{Staff:1,Systems:1}},
-    {id:"process", name:"Procesos y tecnología", cost:25, desc:"Alinear procesos, herramientas y tecnología con comportamientos y formas de trabajo esperadas.", effects:{Systems:2,Structure:1}},
-    {id:"change", name:"Gestión de cambio", cost:15, desc:"Gestionar transición, adopción y apropiación de la cultura deseada.", effects:{"Shared Values":1,Skills:1,Strategy:1}}
-  ];
-
-  const state = { team:"", classCode:"", round:1, credits:STARTING_CREDITS, selected:[], scores:{...initialScores}, history:[], finished:false, timer:ROUND_SECONDS, timerId:null, liveInterval:null, roundResolved:false };
-  const $ = s => document.querySelector(s);
-  const screens=[...document.querySelectorAll('.screen')];
-  const clamp=v=>Math.max(1,Math.min(5,v));
-  const show=id=>{screens.forEach(x=>x.classList.remove('active'));$(id).classList.add('active');window.scrollTo({top:0,behavior:'smooth'});};
-
-  let supabaseClient=null;
-  const cfg=window.GAME_CONFIG||{};
-  if(cfg.SUPABASE_URL&&cfg.SUPABASE_ANON_KEY&&window.supabase) supabaseClient=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY);
-
-  function metrics(){
-    const vals=Object.values(state.scores), avg=vals.reduce((a,b)=>a+b,0)/vals.length, spread=Math.max(...vals)-Math.min(...vals);
-    const coherence=Math.max(0,Math.min(100,Math.round(100-spread*18)));
-    const agile=Math.max(0,Math.min(100,Math.round((avg/5)*70+coherence*.3)));
-    const efficiency=Math.round((state.credits/STARTING_CREDITS)*100);
-    const total=Math.max(0,Math.min(100,Math.round(agile*.5+coherence*.4+efficiency*.1)));
-    return {avg,coherence,agile,efficiency,total};
+const $=selector=>document.querySelector(selector);
+const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const STORE='tension.rooms.v2';
+const cfg=window.GAME_CONFIG||{};
+const state={screen:'start-screen',team:null,credential:null,host:null,hostData:null,selected:[],busy:false,poll:null,timer:null,offset:0,refreshing:false};
+let local;
+try{local=JSON.parse(localStorage.getItem(STORE)||'{"hosts":[],"teams":[],"drafts":{}}');if(!Array.isArray(local.hosts)||!Array.isArray(local.teams))throw Error();local.drafts||={};}catch{local={hosts:[],teams:[],drafts:{}};}
+function persist(){try{localStorage.setItem(STORE,JSON.stringify(local));}catch{throw Error('Este navegador no permite conservar el acceso. Habilita el almacenamiento para crear o retomar una sala.');}}
+function randomKey(){return Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,'0')).join('');}
+function normalizeCode(value){return value.trim().toUpperCase();}
+function validCode(code){return /^[A-Z0-9-]{4,20}$/.test(code);}
+async function api(action,code,key=null,data={}){
+  if(!cfg.SUPABASE_URL||!cfg.SUPABASE_ANON_KEY)throw Error('Falta configurar la conexión de la experiencia.');
+  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),15000);
+  try{
+    const response=await fetch(`${cfg.SUPABASE_URL}/rest/v1/rpc/tension_api`,{method:'POST',headers:{apikey:cfg.SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_action:action,p_code:code,p_key:key,p_data:data}),signal:controller.signal,cache:'no-store'});
+    const result=await response.json();
+    if(!response.ok)throw Error(result.message||'No se pudo completar la solicitud.');
+    return result;
+  }catch(error){
+    if(error.name==='AbortError'||error instanceof TypeError)throw Error('No se pudo conectar. Revisa tu conexión y vuelve a intentarlo; tu acceso se conserva en este navegador.');
+    throw error;
+  }finally{clearTimeout(timeout);}
+}
+function show(id){
+  clearInterval(state.poll);clearInterval(state.timer);state.poll=null;state.timer=null;state.screen=id;
+  document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('active',el.id===id));
+  $('#facilitator-btn').hidden=id==='fac-screen'||id==='host-screen';
+  window.scrollTo({top:0,behavior:'instant'});
+  if(id==='game-screen'||id==='finish-screen'){refreshGame();state.poll=setInterval(refreshGame,4000);if(id==='game-screen')state.timer=setInterval(tick,500);}
+  if(id==='host-screen')state.poll=setInterval(refreshHost,4000);
+}
+function setBusy(button,busy){button.disabled=busy;button.setAttribute('aria-busy',String(busy));}
+function localHost(code){return local.hosts.find(x=>x.code===code);}
+function saveHost(host){const index=local.hosts.findIndex(x=>x.code===host.code);if(index<0)local.hosts.unshift(host);else local.hosts[index]=host;persist();}
+function renderSavedRooms(){
+  const box=$('#saved-rooms');box.replaceChildren();
+  if(!local.hosts.length){box.innerHTML='<p class="empty">Todavía no has creado salas en este navegador.</p>';return;}
+  for(const host of local.hosts){
+    const row=document.createElement('div');row.className='saved-room';
+    row.innerHTML=`<div><strong>${esc(host.title)}</strong><span>${esc(host.code)}</span></div>`;
+    const button=document.createElement('button');button.className='secondary';button.textContent='Abrir';
+    button.onclick=async()=>{setBusy(button,true);try{await openHost(host);}catch(e){row.querySelector('span').textContent=e.message;}finally{setBusy(button,false);}};
+    row.append(button);box.append(row);
   }
+}
+async function openHost(host){
+  const data=await api('host',host.code,host.key);state.host=host;state.hostData=data;
+  saveHost({...host,title:data.room.title});$('#host-title').textContent=data.room.title;
+  $('#share-code').textContent=host.code;
+  const link=roomLink(host.code,location.href);$('#share-link').value=link;$('#room-qr').replaceChildren();
+  if(window.QRCode)new window.QRCode($('#room-qr'),{text:link,width:160,height:160,colorDark:'#0b1224',colorLight:'#ffffff',correctLevel:window.QRCode.CorrectLevel.M});
+  else $('#room-qr').textContent='Usa el enlace directo';
+  $('#share-message').textContent='Código, enlace y QR llevan a esta misma sala.';
+  $('#key-message').textContent='';renderHost();show('host-screen');
+}
+async function refreshHost(){
+  if(state.screen!=='host-screen'||state.refreshing||!state.host)return;
+  state.refreshing=true;const code=state.host.code;
+  try{const data=await api('host',code,state.host.key);if(state.screen!=='host-screen'||state.host.code!==code)return;state.hostData=data;renderHost();}
+  catch(e){if(state.screen==='host-screen')$('#host-status').textContent=`No se pudo actualizar: ${e.message}`;}
+  finally{state.refreshing=false;}
+}
+const formatDate=value=>new Date(value).toLocaleString('es-CO',{dateStyle:'short',timeStyle:'short'});
+function decisionCard(h){
+  return `<article class="decision-card"><h3>Ronda ${h.round} · ${esc(h.title)}</h3><p><strong>Palancas:</strong> ${h.levers.length?h.levers.map(esc).join(' · '):'Decidieron no intervenir'}</p><blockquote>${esc(h.reason)}</blockquote><p><strong>${esc(h.outcome.charAt(0).toUpperCase()+h.outcome.slice(1))}.</strong> ${esc(h.consequence)}</p>${h.synergies?.length?`<p>${h.synergies.map(esc).join(' ')}</p>`:''}<div class="decision-metrics"><span>Costo ${h.cost}</span><span class="${h.debt?'debt':''}">Saldo ${h.creditsLeft}${h.debt?` · Deuda ${h.debt}`:''}</span><span>Penalización −${h.penalty}</span><span>Agile ${h.agile} (${h.deltaAgile>0?'+':''}${h.deltaAgile})</span><span>Coherencia ${h.coherence}% (${h.deltaCoherence>0?'+':''}${h.deltaCoherence})</span><span>Puntaje ${h.total}/100</span></div><div class="decision-date">${esc(formatDate(h.at))}${h.timedOut?' · Tiempo agotado':''}</div></article>`;
+}
+function renderHost(){
+  const {room,teams}=state.hostData;
+  $('#host-status').textContent=`Ingreso ${room.status==='open'?'abierto':'cerrado'} · Actualización automática cada 4 segundos.`;
+  $('#toggle-room').textContent=room.status==='open'?'Cerrar ingreso':'Reabrir ingreso';
+  $('#host-team-count').textContent=teams.length;
+  $('#host-decision-count').textContent=teams.reduce((n,t)=>n+t.history.length,0);
+  $('#host-debt-count').textContent=teams.filter(t=>t.credits<0).length;
+  const filter=$('#team-filter'),previous=filter.value;
+  const options='<option value="">Todos los equipos</option>'+teams.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
+  if(filter.innerHTML!==options){filter.innerHTML=options;filter.value=teams.some(t=>t.id===previous)?previous:'';}
+  const opened=new Set([...document.querySelectorAll('.host-team[open]')].map(el=>el.dataset.id));
+  const round=Number($('#round-filter').value),selected=filter.value;
+  const visible=teams.filter(t=>(!selected||t.id===selected)&&(!round||t.history.some(h=>h.round===round)));
+  $('#host-teams').innerHTML=visible.length?visible.map(t=>`<details class="host-team" data-id="${t.id}" ${opened.has(t.id)||selected?'open':''}><summary><h3>${esc(t.name)}</h3><span class="team-meta"><strong>${t.metrics.total}/100</strong><span class="${t.credits<0?'debt':''}">Saldo ${t.credits}${t.credits<0?` · Deuda ${-t.credits}`:''}</span><span>${t.finished?'Finalizado':`Ronda ${t.round}/4`}</span><span>${t.history.length} decisiones ▾</span></span></summary>${t.history.length?t.history.filter(h=>!round||h.round===round).map(decisionCard).join(''):'<p class="hint">El equipo ya entró. Aún no ha ejecutado una decisión.</p>'}</details>`).join(''):`<p class="empty">${teams.length?'No hay decisiones para este filtro.':'Comparte la sala. Los equipos aparecerán aquí al ingresar.'}</p>`;
+}
+function draftKey(){return `${state.team.id}:${state.team.round}`;}
+function saveDraft(){if(!state.team||state.team.resolved)return;local.drafts[draftKey()]={selected:state.selected,reason:$('#reason-input').value};try{persist();}catch(e){$('#sync-message').textContent=e.message;}}
+function applyTeam(team,restoreDraft=false){
+  state.team=team;state.offset=team.server_now?Date.parse(team.server_now)-Date.now():0;
+  state.selected=[];
+  if(restoreDraft&&!team.resolved){const draft=local.drafts[draftKey()];if(draft){state.selected=draft.selected.filter(id=>levers.some(l=>l.id===id)).slice(0,3);$('#reason-input').value=String(draft.reason||'').slice(0,180);}else $('#reason-input').value='';}
+  else $('#reason-input').value=team.resolved?(team.history.at(-1)?.reason||''):'';
+  if(team.resolved){delete local.drafts[draftKey()];try{persist();}catch{}}
+}
+function renderGame(){
+  const t=state.team,r=rounds[t.round-1],m=t.metrics;
+  $('#team-label').textContent=t.name;$('#team-room').textContent=t.room_code;
+  $('#round-title').textContent=r.title;$('#round-label').textContent=t.round;$('#credits-label').textContent=t.credits;
+  $('#balance-pill').classList.toggle('debt',t.credits<0);$('#balance-pill').classList.toggle('debt-bg',t.credits<0);
+  $('#situation-title').textContent=r.title;$('#situation-context').textContent=r.context;$('#situation-dilemma').textContent=r.dilemma;
+  $('#signals').innerHTML=r.signals.map(s=>`<div class="signal">${esc(s)}</div>`).join('');
+  $('#round-progress').innerHTML=rounds.map((_,i)=>`<div class="progress-step ${i<t.history.length?'done':i+1===t.round?'current':''}"></div>`).join('');
+  const labels={'Strategy':'Estrategia','Structure':'Estructura','Systems':'Sistemas','Shared Values':'Valores compartidos','Skills':'Capacidades','Style':'Estilo de liderazgo','Staff':'Personas'};
+  $('#scores-grid').innerHTML=Object.entries(t.scores).map(([k,v])=>`<div class="score-card"><span>${labels[k]||esc(k)}</span><strong>${v}<small>/5</small></strong><div class="score-dots" aria-hidden="true">${Array.from({length:5},(_,i)=>`<i class="${i<v?'on':''}"></i>`).join('')}</div></div>`).join('');
+  $('#agile-badge').textContent=`Agile ${m.agile}/100`;$('#coherence-label').textContent=`${m.coherence}%`;$('#coherence-bar').style.width=`${m.coherence}%`;
+  $('#history').innerHTML=t.history.length?t.history.map(decisionCard).join(''):'<p class="hint">Aquí verás las consecuencias de tus decisiones.</p>';
+  $('#round-board').innerHTML=t.history.length?`<table><thead><tr><th>Ronda</th><th>Agile</th><th>Coherencia</th><th>Saldo</th><th>Deuda</th><th>Puntaje</th></tr></thead><tbody>${t.history.map(h=>`<tr><td>${h.round}</td><td>${h.agile}</td><td>${h.coherence}%</td><td class="${h.debt?'debt':''}">${h.creditsLeft}</td><td>${h.debt}</td><td>${h.total}</td></tr>`).join('')}</tbody></table>`:'';
+  $('#reason-input').disabled=t.resolved;$('#reason-count').textContent=`${$('#reason-input').value.length}/180`;$('#execute-btn').disabled=t.resolved||state.busy;
+  $('#round-footer').classList.toggle('hidden',!t.resolved);
+  if(t.resolved){const h=t.history.at(-1);$('#footer-result-title').textContent=h.timedOut?'Tiempo agotado':`Decisión ${h.outcome}`;$('#footer-result-text').textContent=`${h.consequence} ${h.synergies.join(' ')} Agile ${h.agile}/100 · Coherencia ${h.coherence}% · Saldo ${h.creditsLeft}${h.debt?` · Deuda ${h.debt} · Penalización −${h.penalty} puntos`:''}.`;$('#next-btn').textContent=t.round<4?`Continuar a la ronda ${t.round+1}`:'Ver resultado final';}
+  renderLevers();tick();
+}
+function renderLevers(){
+  const t=state.team,box=$('#levers-grid');box.replaceChildren();
+  for(const l of levers){const selected=state.selected.includes(l.id),button=document.createElement('button');button.type='button';button.className=`lever${selected?' selected':''}`;button.setAttribute('aria-pressed',String(selected));button.disabled=t.resolved||state.busy;button.innerHTML=`<strong>${esc(l.name)}</strong><span class="lever-cost">${l.cost} cr.</span><p>${esc(l.desc)}</p>`;button.onclick=()=>{if(state.busy||t.resolved)return;const index=state.selected.indexOf(l.id);if(index>=0)state.selected.splice(index,1);else if(state.selected.length<3)state.selected.push(l.id);else{$('#validation-msg').textContent='Puedes elegir máximo tres palancas.';return;}$('#validation-msg').textContent='';renderLevers();saveDraft();};box.append(button);}
+  $('#selection-label').textContent=`${state.selected.length}/3`;
+  const cost=state.selected.reduce((sum,id)=>sum+levers.find(l=>l.id===id).cost,0),balance=t.credits-cost,forecast=metrics(t.scores,balance);
+  $('#budget-preview').classList.toggle('debt-bg',balance<0);
+  $('#budget-preview').innerHTML=`<div><span>Costo de esta decisión</span><strong>${cost} cr.</strong></div><div><span>Saldo ${t.resolved?'actual':'previsto'}</span><strong class="${balance<0?'debt':''}">${balance} cr.</strong></div><p>${balance<0?`Continúas con una deuda de ${forecast.debt} créditos. Su penalización será de ${forecast.penalty} puntos en el ranking.`:'El presupuesto es único para las cuatro rondas.'}</p>`;
+}
+function tick(){
+  if(state.screen!=='game-screen'||!state.team)return;
+  const t=state.team,remaining=t.resolved?0:Math.max(0,Math.ceil((Date.parse(t.deadline)-Date.now()-state.offset)/1000));
+  $('#timer-label').textContent=t.resolved?'Ronda cerrada':`${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}`;
+  $('#timer-pill').classList.toggle('urgent',!t.resolved&&remaining<=60);
+  if(remaining===0&&!t.resolved&&!state.busy&&navigator.onLine&&Date.now()>(state.retryAfter||0))executeDecision(true);
+}
+async function executeDecision(timedOut=false){
+  if(state.busy||state.team.resolved)return;
+  const reason=$('#reason-input').value.trim();
+  if(!timedOut&&reason.length<20){$('#validation-msg').textContent='Justifica tu decisión con al menos 20 caracteres.';$('#reason-input').focus();return;}
+  state.busy=true;setBusy($('#execute-btn'),true);renderLevers();$('#validation-msg').textContent='Guardando decisión…';
+  try{
+    const t=await api('decide',state.team.room_code,state.credential.key,{id:state.team.id,round:state.team.round,selected:state.selected,reason});
+    applyTeam(t);$('#validation-msg').textContent='Decisión guardada.';$('#sync-message').textContent='Tu decisión y sus consecuencias quedaron guardadas.';$('#sync-message').classList.remove('error');
+    renderGame();await loadLeaderboard();$('#round-footer').scrollIntoView({behavior:'smooth',block:'center'});
+  }catch(e){state.retryAfter=Date.now()+10000;$('#validation-msg').textContent=e.message;$('#sync-message').textContent='La decisión aún no está confirmada. Puedes volver a intentarlo.';$('#sync-message').classList.add('error');}
+  finally{state.busy=false;$('#execute-btn').disabled=state.team.resolved;renderLevers();}
+}
+async function nextRound(){
+  if(state.busy)return;state.busy=true;setBusy($('#next-btn'),true);
+  try{const t=await api('next',state.team.room_code,state.credential.key,{id:state.team.id,round:state.team.round});applyTeam(t,true);$('#validation-msg').textContent='';if(t.finished){renderFinish();show('finish-screen');}else{renderGame();window.scrollTo({top:0,behavior:'smooth'});}}
+  catch(e){$('#validation-msg').textContent=e.message;$('#sync-message').textContent=e.message;$('#sync-message').classList.add('error');}
+  finally{state.busy=false;setBusy($('#next-btn'),false);if(!state.team.finished)renderGame();}
+}
+function renderFinish(){
+  const t=state.team,m=t.metrics;
+  $('#finish-title').textContent=m.total>=80?'Transformación sobresaliente':m.total>=65?'Transformación sólida':m.total>=50?'Transformación parcial':'Transformación frágil';
+  $('#final-score').textContent=m.total;$('#final-agile').textContent=`${m.agile}/100`;$('#final-coherence').textContent=`${m.coherence}%`;$('#final-credits').textContent=t.credits;$('#final-credits').classList.toggle('debt',t.credits<0);$('#final-penalty').textContent=`−${m.penalty} puntos`;$('#final-penalty').classList.toggle('debt',m.penalty>0);
+  $('#finish-copy').textContent=`El puntaje combina Cultura Agile (50 %), coherencia del sistema (40 %) y presupuesto disponible (10 %).${m.debt?` La deuda de ${m.debt} créditos restó ${m.penalty} puntos.`:' Administraron la transformación sin deuda.'} Las decisiones también se valoran por su pertinencia y sus sinergias.`;
+  $('#finish-history').innerHTML=t.history.map(decisionCard).join('');
+}
+function rankingRows(teams){return teams.map((t,i)=>`<tr class="${t.id===state.team?.id?'me':''}"><td>${i+1}</td><td>${esc(t.name)}${t.id===state.team?.id?' · Tú':''}</td><td><strong>${t.metrics.total}</strong>${t.metrics.penalty?` <span class="debt" title="Penalización por deuda">(−${t.metrics.penalty})</span>`:''}</td><td>${t.metrics.agile}</td><td>${t.metrics.coherence}%</td><td class="${t.credits<0?'debt':''}">${t.credits}${t.credits<0?` / ${-t.credits} deuda`:''}</td><td><span class="status-badge ${t.finished?'status-finished':''}">${t.finished?'Finalizado':`Ronda ${t.round}`}</span></td></tr>`).join('');}
+async function loadLeaderboard(){
+  const code=state.team.room_code,teams=await api('leaderboard',code);
+  if(state.team.room_code!==code)return;
+  $('#live-body').innerHTML=rankingRows(teams);$('#final-live-body').innerHTML=rankingRows(teams);
+  const text=`${teams.length} equipos · Actualización automática cada 4 segundos. El puntaje ya incluye la penalización por deuda.`;
+  $('#live-status').textContent=text;$('#final-live-status').textContent=text;$('#ranking-count').textContent=teams.length;
+}
+async function refreshGame(){
+  if(!state.team||state.refreshing||state.busy||!['game-screen','finish-screen'].includes(state.screen))return;
+  state.refreshing=true;
+  try{
+    const t=await api('team',state.team.room_code,state.credential.key,{id:state.team.id});
+    if(!['game-screen','finish-screen'].includes(state.screen))return;
+    if(Date.parse(t.updated_at)>Date.parse(state.team.updated_at)){applyTeam(t,true);if(t.finished){renderFinish();if(state.screen!=='finish-screen')show('finish-screen');}else renderGame();}
+    await loadLeaderboard();$('#sync-message').textContent='Progreso guardado · Puedes retomar desde este navegador.';$('#sync-message').classList.remove('error');
+  }catch(e){$('#sync-message').textContent=`No se pudo actualizar. ${e.message}`;$('#sync-message').classList.add('error');$('#live-status').textContent='No se pudo actualizar el ranking. Mostramos la última información disponible.';$('#final-live-status').textContent=$('#live-status').textContent;}
+  finally{state.refreshing=false;}
+}
+async function copy(text){if(!navigator.clipboard?.writeText)throw Error('No se pudo copiar automáticamente. Selecciona y copia el enlace de la sala.');await navigator.clipboard.writeText(text);}
+const invite=()=>`Te invito a Transformación en tensión.\nSala: ${state.hostData.room.title}\nCódigo: ${state.host.code}\nEntra aquí: ${$('#share-link').value}`;
 
-  function renderRound(){
-    const r=rounds[state.round-1];
-    $('#round-label').textContent=state.round;
-    $('#round-title').textContent=r.title;
-    $('#situation-title').textContent=r.title;
-    $('#situation-context').textContent=r.context;
-    $('#situation-dilemma').textContent=r.dilemma;
-    $('#signals-caption').textContent=`Ronda ${state.round} · Lee las señales antes de intervenir.`;
-    $('#signals').innerHTML=r.signals.map(s=>`<div class="signal">${s}</div>`).join('');
-    renderScores(); renderLevers(); renderHistory();
-  }
-
-  function renderScores(){
-    $('#scores-grid').innerHTML=Object.entries(state.scores).map(([k,v])=>`<div class="score-card"><span>${k}</span><strong>${v}<small>/5</small></strong></div>`).join('');
-    const m=metrics();
-    $('#coherence-label').textContent=m.coherence+'%'; $('#coherence-bar').style.width=m.coherence+'%'; $('#agile-badge').textContent='Agile '+m.agile+'/100';
-    $('#credits-label').textContent=state.credits; $('#trend-agile-main').textContent=m.agile+'/100'; $('#trend-coherence-main').textContent=m.coherence+'%'; $('#trend-credits-main').textContent=state.credits;
-    const last=state.history.at(-1);
-    $('#trend-agile-delta').innerHTML=last?deltaHtml(last.deltaAgile,false):'Sin cambios todavía';
-    $('#trend-coherence-delta').innerHTML=last?deltaHtml(last.deltaCoherence,true):'Sin cambios todavía';
-    renderBoard();
-  }
-
-  function renderLevers(){
-    const box=$('#levers-grid'); box.innerHTML='';
-    levers.forEach(l=>{
-      const selected=state.selected.includes(l.id), unaffordable=l.cost>state.credits&&!selected;
-      const b=document.createElement('button'); b.type='button'; b.className='lever'+(selected?' selected':'')+(unaffordable?' unaffordable':''); b.disabled=state.roundResolved||unaffordable;
-      b.innerHTML=`<div class="lever-top"><div><strong>${l.name}</strong><p>${l.desc}</p></div><strong>${l.cost}</strong></div>`;
-      b.addEventListener('click',()=>toggleLever(l.id)); box.appendChild(b);
-    });
-    $('#selection-label').textContent=state.selected.length+' seleccionada'+(state.selected.length===1?'':'s');
-  }
-
-  function toggleLever(id){
-    if(state.roundResolved) return;
-    $('#validation-msg').textContent='';
-    const i=state.selected.indexOf(id);
-    if(i>=0) state.selected.splice(i,1);
-    else { if(state.selected.length>=3){$('#validation-msg').textContent='Máximo 3 palancas por ronda.';return;} state.selected.push(id); }
-    renderLevers();
-  }
-
-  function renderHistory(){
-    const el=$('#history');
-    if(!state.history.length){el.className='history empty';el.textContent='Aún no has ejecutado intervenciones.';return;}
-    el.className='history';
-    el.innerHTML=state.history.map(h=>`<div class="history-item"><strong>Ronda ${h.round} · ${h.title}</strong><br>${h.levers.length?h.levers.join(', '):'Sin intervención'}<br><span class="small"><strong>${escapeHtml(h.outcome)}</strong> · ${escapeHtml(h.reason)} · Agile ${h.agile} (${fmt(h.deltaAgile)}) · Coherencia ${h.coherence}% (${fmt(h.deltaCoherence,true)})</span></div>`).join('');
-  }
-
-  function renderBoard(){
-    const box=$('#round-board');
-    if(!state.history.length){box.className='round-board empty';box.textContent='Aún no hay rondas ejecutadas.';return;}
-    box.className='round-board';
-    box.innerHTML=`<table><thead><tr><th>Ronda</th><th>Agile</th><th>Δ Agile</th><th>Coherencia</th><th>Δ Coherencia</th><th>Créditos</th></tr></thead><tbody>${state.history.map(h=>`<tr><td>${h.round}</td><td>${h.agile}</td><td>${deltaHtml(h.deltaAgile,false)}</td><td>${h.coherence}%</td><td>${deltaHtml(h.deltaCoherence,true)}</td><td>${h.creditsLeft}</td></tr>`).join('')}</tbody></table>`;
-  }
-
-  function deltaHtml(v,pct){const s=pct?'%':'';return v>0?`<span class="delta-up">▲ +${v}${s}</span>`:v<0?`<span class="delta-down">▼ ${v}${s}</span>`:`<span class="delta-neutral">• 0${s}</span>`}
-  function fmt(v,p=false){const s=p?'%':'';return v>0?`+${v}${s}`:`${v}${s}`}
-  function totalCost(){return state.selected.reduce((sum,id)=>sum+levers.find(l=>l.id===id).cost,0)}
-
-  function startTimer(){
-    clearTimer(); state.timer=ROUND_SECONDS; updateTimer();
-    state.timerId=setInterval(()=>{ state.timer--; updateTimer(); if(state.timer<=0){clearTimer(); resolveRound(true);} },1000);
-  }
-  function clearTimer(){if(state.timerId){clearInterval(state.timerId);state.timerId=null}}
-  function updateTimer(){
-    const min=String(Math.floor(state.timer/60)).padStart(2,'0'), sec=String(state.timer%60).padStart(2,'0');
-    $('#timer-label').textContent=`${min}:${sec}`; $('#timer-pill').classList.toggle('urgent',state.timer<=60);
-  }
-
-  function validateDecision(timedOut=false){
-    const reason=$('#reason-input').value.trim();
-    if(!timedOut && reason.length<MIN_REASON){$('#validation-msg').textContent=`Justifica tu decisión en al menos ${MIN_REASON} caracteres.`;return false;}
-    if(totalCost()>state.credits){$('#validation-msg').textContent='No tienes créditos suficientes.';return false;}
-    return true;
-  }
-
-  function applyDelta(delta){
-    Object.entries(delta||{}).forEach(([k,v])=>state.scores[k]=clamp(state.scores[k]+v));
-  }
-
-  function evaluateDecision(round, selectedIds){
-    const rel = selectedIds.map(id=>round.relevance[id] ?? 0);
-    const totalRelevance = rel.reduce((a,b)=>a+b,0);
-    const strong = rel.filter(v=>v>=2).length;
-    const counterproductive = rel.filter(v=>v<0).length;
-    const synergyNotes = [];
-
-    let level, text;
-
-    if(selectedIds.length===0){
-      level="sin intervención";
-      applyDelta(round.unresolved);
-      applyDelta(round.misaligned);
-      text=`No hubo intervención. ${round.consequence}`;
-    } else if(counterproductive>=1 && strong===0){
-      level="contraproducente";
-      applyDelta(round.unresolved);
-      applyDelta(round.misaligned);
-      text="La decisión consume recursos, pero no responde al problema central. El sistema se deteriora.";
-    } else if(totalRelevance<=1){
-      level="baja pertinencia";
-      applyDelta(round.unresolved);
-      applyDelta(round.misaligned);
-      text="La intervención está demasiado lejos del diagnóstico. El problema continúa y aparecen pérdidas explícitas.";
-    } else if(strong===0 || totalRelevance<=3){
-      level="parcial";
-      applyDelta(round.unresolved);
-      text="La intervención atiende una parte del problema, pero deja una tensión relevante sin resolver.";
-    } else {
-      level="alineada";
-      text="La decisión está bien alineada con el diagnóstico y contiene la tensión principal.";
-    }
-
-    // Sobreintervención: usar 3 palancas no es automáticamente mejor.
-    const avg = selectedIds.length ? totalRelevance/selectedIds.length : 0;
-    let overIntervention=false;
-    if(selectedIds.length===3 && avg<2){
-      overIntervention=true;
-      applyDelta({Staff:-1});
-      text += " Además, la sobreintervención genera fatiga y dispersión.";
-    }
-
-    // Sinergias contextuales.
-    for(const s of round.synergies||[]){
-      if(s.needs.every(id=>selectedIds.includes(id))){
-        applyDelta(s.delta);
-        synergyNotes.push(s.text);
-      }
-    }
-
-    if(synergyNotes.length) text += " Sinergia: " + synergyNotes.join(" ");
-
-    return {level,text,totalRelevance,strong,counterproductive,overIntervention,synergyNotes};
-  }
-
-  function resolveRound(timedOut=false){
-    if(state.roundResolved) return;
-    if(!validateDecision(timedOut)) return;
-    state.roundResolved=true; clearTimer();
-
-    const r=rounds[state.round-1], before=metrics();
-    const chosen=state.selected.map(id=>levers.find(l=>l.id===id));
-    const reason=$('#reason-input').value.trim() || (timedOut?'Tiempo agotado sin justificación válida.':'Decisión sin intervención.');
-    const cost=totalCost(); state.credits-=cost;
-    chosen.forEach(l=>Object.entries(l.effects).forEach(([k,d])=>state.scores[k]=clamp(state.scores[k]+d)));
-
-    const outcome=evaluateDecision(r,state.selected);
-    const after=metrics();
-    const h={round:state.round,title:r.title,levers:chosen.map(x=>x.name),reason,agile:after.agile,coherence:after.coherence,creditsLeft:state.credits,deltaAgile:after.agile-before.agile,deltaCoherence:after.coherence-before.coherence,outcome:outcome.level,timedOut,relevance:outcome.totalRelevance,synergies:outcome.synergyNotes};
-    state.history.push(h);
-
-    const labels={
-      'alineada':'✅ Decisión alineada',
-      'parcial':'🟡 Decisión parcialmente alineada',
-      'baja pertinencia':'🔻 Decisión de baja pertinencia',
-      'contraproducente':'⚠️ Decisión contraproducente',
-      'sin intervención':'⛔ Sin intervención'
-    };
-    $('#footer-result-title').textContent=timedOut?'⏱ Tiempo agotado':(labels[outcome.level]||'Ronda resuelta');
-    $('#footer-result-text').textContent=`${outcome.text} Agile ${fmt(h.deltaAgile)} · Coherencia ${fmt(h.deltaCoherence,true)} · Créditos ${state.credits}.`;
-    $('#round-footer').classList.remove('hidden');
-    $('#execute-btn').disabled=true; $('#reason-input').disabled=true; state.selected=[];
-    renderScores(); renderLevers(); renderHistory(); saveProgress(); loadLiveLeaderboard();
-
-    if(state.round<4){$('#next-btn').textContent=`Continuar a la ronda ${state.round+1}`;} else {$('#next-btn').textContent='Ver resultado final';}
-    $('#round-footer').scrollIntoView({behavior:'smooth',block:'end'});
-  }
-
-  function nextRound(){
-    if(!state.roundResolved) return;
-    if(state.round>=4){finishGame();return;}
-    state.round++; state.roundResolved=false; state.selected=[]; $('#reason-input').value=''; $('#reason-input').disabled=false; $('#reason-count').textContent='0/180'; $('#validation-msg').textContent=''; $('#round-footer').classList.add('hidden'); $('#execute-btn').disabled=false;
-    renderRound(); startTimer(); saveProgress(); window.scrollTo({top:0,behavior:'smooth'});
-  }
-
-  function currentPayload(statusOverride=null){const m=metrics();return{team_name:state.team,class_code:state.classCode,score:m.total,agile_score:m.agile,coherence:m.coherence,credits_left:state.credits,decisions:state.history,current_round:state.round,status:statusOverride||(state.finished?'finished':'in_progress')}}
-  async function saveProgress(statusOverride=null){if(!supabaseClient||!state.team||!state.classCode)return;const{error}=await supabaseClient.from('game_results').upsert(currentPayload(statusOverride),{onConflict:'class_code,team_name'});if(error)console.error(error.message)}
-
-  async function finishGame(){
-    clearTimer(); state.finished=true; const m=metrics();
-    $('#finish-title').textContent=m.total>=80?'Transformación sobresaliente':m.total>=65?'Transformación sólida':m.total>=50?'Transformación parcial':'Transformación frágil'; $('#final-score').textContent=m.total; $('#final-agile').textContent=m.agile+'/100'; $('#final-coherence').textContent=m.coherence+'%'; $('#final-credits').textContent=state.credits;
-    $('#finish-copy').textContent='El resultado combina Cultura Agile, coherencia del sistema y eficiencia del presupuesto. Las rondas no resueltas generan consecuencias sobre las 7S.';
-    await saveProgress('finished'); show('#finish-screen');
-  }
-
-  async function fetchLeaderboard(){if(!supabaseClient||!state.classCode)return{data:[],error:true};return await supabaseClient.from('game_results').select('team_name,score,agile_score,coherence,credits_left,current_round,status,created_at').eq('class_code',state.classCode).order('score',{ascending:false}).order('created_at',{ascending:true}).limit(100)}
-  function statusBadge(r){return r.status==='finished'?'<span class="status-badge status-finished">Finalizado</span>':`<span class="status-badge status-live">En juego · R${r.current_round||1}</span>`}
-  async function loadLiveLeaderboard(){
-    const body=$('#live-body'),status=$('#live-status'),podium=$('#podium-live');
-    if(!body || !status || !podium) return;
-    const{data,error}=await fetchLeaderboard();
-    if(error){status.textContent='No se pudo cargar el ranking en vivo.';body.innerHTML='';podium.innerHTML='';return;}
-    status.textContent=data.length?`${data.length} equipo(s) · actualización cada 5 segundos.`:'Aún no hay equipos registrados.';
-    const medals=['🥇','🥈','🥉'];
-    podium.innerHTML=data.slice(0,3).map((r,i)=>`<div class="podium-card ${r.team_name===state.team?'me':''}"><div class="podium-rank">${medals[i]}</div><div class="podium-team">${escapeHtml(r.team_name)}${r.team_name===state.team?' · Tú':''}</div><div class="podium-score">${r.score}</div></div>`).join('');
-    body.innerHTML=data.map((r,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(r.team_name)}${r.team_name===state.team?' <strong>(Tú)</strong>':''}</td><td><strong>${r.score}</strong></td><td>${r.agile_score}</td><td>${r.coherence}%</td><td>${statusBadge(r)}</td></tr>`).join('');
-  }
-  async function loadLeaderboard(){$('#leaderboard-code').textContent=state.classCode;const{data,error}=await fetchLeaderboard();$('#leaderboard-status').textContent=error?'No se pudo cargar el ranking.':`${data.length} equipo(s) registrados.`;$('#leaderboard-body').innerHTML=(data||[]).map((r,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(r.team_name)}</td><td><strong>${r.score}</strong></td><td>${r.agile_score}</td><td>${r.coherence}%</td><td>${r.credits_left}</td><td>${statusBadge(r)}</td></tr>`).join('')}
-  function startLiveRefresh(){if(state.liveInterval)clearInterval(state.liveInterval);state.liveInterval=setInterval(loadLiveLeaderboard,5000)}
-  function escapeHtml(s){const d=document.createElement('div');d.textContent=s??'';return d.innerHTML}
-
-  $('#team-form').addEventListener('submit',async e=>{e.preventDefault();state.team=$('#team-name').value.trim();state.classCode=$('#class-code').value.trim().toUpperCase();if(!state.team||!state.classCode)return;$('#team-label').textContent=state.team;show('#game-screen');renderRound();startTimer();await saveProgress();await loadLiveLeaderboard();startLiveRefresh();});
-  $('#execute-btn').addEventListener('click',()=>resolveRound(false));
-  $('#next-btn').addEventListener('click',nextRound);
-  $('#reason-input').addEventListener('input',e=>{$('#reason-count').textContent=`${e.target.value.length}/${MAX_REASON}`;$('#validation-msg').textContent='';});
-  $('#refresh-live-btn').addEventListener('click',loadLiveLeaderboard);
-  $('#leaderboard-btn').addEventListener('click',async()=>{show('#leaderboard-screen');await loadLeaderboard()});
-  $('#back-finish-btn').addEventListener('click',()=>show('#finish-screen'));
-  $('#restart-btn').addEventListener('click',()=>location.reload());
-})();
+$('#facilitator-btn').onclick=()=>{renderSavedRooms();show('fac-screen');};
+$('[data-home]').onclick=()=>show('start-screen');
+$('#back-rooms').onclick=()=>{renderSavedRooms();show('fac-screen');};
+$('#room-form').onsubmit=async event=>{
+  event.preventDefault();const code=normalizeCode($('#new-code').value),title=$('#room-title').value.trim(),button=$('#create-room-btn');
+  if(!validCode(code))return;setBusy(button,true);$('#create-message').textContent='Creando sala…';
+  try{const host=localHost(code)||{code,title,key:randomKey()};saveHost(host);await api('create',code,host.key,{title});await openHost(host);$('#create-message').textContent='';}
+  catch(e){$('#create-message').textContent=e.message;}finally{setBusy(button,false);}
+};
+$('#recover-form').onsubmit=async event=>{event.preventDefault();const button=event.submitter;setBusy(button,true);try{await openHost({code:normalizeCode($('#recover-code').value),key:$('#recover-key').value.trim(),title:''});$('#recover-key').value='';$('#recover-message').textContent='';}catch(e){$('#recover-message').textContent=e.message;}finally{setBusy(button,false);}};
+$('#team-form').onsubmit=async event=>{
+  event.preventDefault();const code=normalizeCode($('#class-code').value),name=$('#team-name').value.trim(),button=$('#join-btn');if(!validCode(code)||!name)return;
+  setBusy(button,true);$('#join-message').textContent='Conectando con tu sala…';
+  try{
+    let credential=local.teams.find(t=>t.code===code&&t.name.toLowerCase()===name.toLowerCase());
+    if(!credential){credential={code,name,key:randomKey()};local.teams.push(credential);persist();}
+    const t=await api('join',code,credential.key,{name});credential.id=t.id;persist();state.credential=credential;applyTeam(t,true);$('#join-message').textContent='';
+    if(t.finished){renderFinish();show('finish-screen');}else{show('game-screen');renderGame();}
+  }catch(e){$('#join-message').textContent=e.message;}finally{setBusy(button,false);}
+};
+$('#execute-btn').onclick=()=>executeDecision(false);$('#next-btn').onclick=nextRound;
+$('#reason-input').oninput=event=>{$('#reason-count').textContent=`${event.target.value.length}/180`;$('#validation-msg').textContent='';saveDraft();};
+$('#team-filter').onchange=renderHost;$('#round-filter').onchange=renderHost;
+$('#host-refresh').onclick=refreshHost;
+$('#toggle-room').onclick=async()=>{const button=$('#toggle-room');setBusy(button,true);try{state.hostData=await api('status',state.host.code,state.host.key,{status:state.hostData.room.status==='open'?'closed':'open'});renderHost();}catch(e){$('#host-status').textContent=e.message;}finally{setBusy(button,false);}};
+$('#copy-invite').onclick=async()=>{try{await copy(invite());$('#share-message').textContent='Invitación copiada con el código y el enlace directo.';}catch(e){$('#share-message').textContent=e.message;$('#share-link').select();}};
+$('#share-invite').onclick=async()=>{try{if(navigator.share){await navigator.share({title:'Transformación en tensión',text:`Sala: ${state.hostData.room.title}\nCódigo: ${state.host.code}`,url:$('#share-link').value});$('#share-message').textContent='Invitación compartida.';}else{await copy(invite());$('#share-message').textContent='Invitación copiada. Pégala en WhatsApp, correo o el canal de tu grupo.';}}catch(e){if(e.name!=='AbortError')$('#share-message').textContent=e.message;}};
+$('#copy-host-key').onclick=async()=>{try{await copy(state.host.key);$('#key-message').textContent='Clave privada copiada. Guárdala para recuperar el panel desde otro dispositivo.';}catch(e){$('#key-message').textContent=e.message;}};
+$('#export-decisions').onclick=()=>{const blob=new Blob([decisionsCsv(state.hostData.room,state.hostData.teams)],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`decisiones-${state.host.code}.csv`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);};
+$('#review-decisions').onclick=()=>$('#finish-history').classList.toggle('hidden');
+$('#finish-home').onclick=()=>show('start-screen');
+let roomLookup=0;
+$('#class-code').oninput=()=>{clearTimeout(roomLookup);const code=normalizeCode($('#class-code').value);roomLookup=setTimeout(async()=>{if(!validCode(code)){ $('#room-hint').textContent='Tu facilitador te comparte el código o el enlace.';return;}try{const room=await api('room',code);if(normalizeCode($('#class-code').value)!==code)return;$('#room-hint').textContent=`Sala: ${room.title}${room.status==='closed'?' · Cerrada para nuevos equipos':''}`;}catch(e){if(normalizeCode($('#class-code').value)===code)$('#room-hint').textContent=e.message;}},350);};
+const prefilled=normalizeCode(new URL(location.href).searchParams.get('sala')||'');
+if(validCode(prefilled)){$('#class-code').value=prefilled;const saved=local.teams.find(t=>t.code===prefilled);if(saved)$('#team-name').value=saved.name;$('#class-code').oninput();}
+window.addEventListener('online',()=>{state.retryAfter=0;if(state.screen==='host-screen')refreshHost();else refreshGame();});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(state.screen==='host-screen')refreshHost();else{refreshGame();tick();}}});

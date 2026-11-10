@@ -1,0 +1,56 @@
+-- Run inside a transaction and roll it back. Creates no permanent test data.
+do $$
+declare host_key text:=repeat('a',64); team_key text:=repeat('b',64); other_key text:=repeat('c',64);
+ a jsonb; b jsonb; host jsonb; ranking jsonb; team_id text; rejected boolean; i integer; old_count integer;
+begin
+ perform public.tension_api('create','QA-ROLLBACK',host_key,'{"title":"Verificación transaccional"}');
+ a:=public.tension_api('join','QA-ROLLBACK',team_key,'{"name":"Equipo verificación"}'); team_id:=a->>'id';
+ assert a->>'credits'='120','Initial credits must be 120';
+ assert a->'metrics'->>'penalty'='0','No initial debt penalty';
+ assert not (a ? 'key_hash'),'Never return key hashes';
+ for i in 1..4 loop
+  a:=public.tension_api('decide','QA-ROLLBACK',team_key,jsonb_build_object('id',team_id,'round',i,'selected','["architecture","process","leadership"]'::jsonb,'reason','Una justificación de la decisión para verificar el guardado.'));
+  assert (a->>'credits')::integer=120-70*i,'Each decision spends exactly once';
+  assert jsonb_array_length(a->'history')=i,'Every round is retained';
+  b:=public.tension_api('decide','QA-ROLLBACK',team_key,jsonb_build_object('id',team_id,'round',i,'selected','["architecture","process","leadership"]'::jsonb,'reason','Una justificación de la decisión para verificar el guardado.'));
+  assert b->>'credits'=a->>'credits','Retry must be idempotent';
+  a:=public.tension_api('next','QA-ROLLBACK',team_key,jsonb_build_object('id',team_id,'round',i));
+ end loop;
+ assert (a->>'credits')::integer=-160,'Teams can complete with debt';
+ assert (a->'metrics'->>'debt')::integer=160,'Debt is explicit';
+ assert (a->'metrics'->>'penalty')::integer=50,'Penalty capped at 50';
+ assert (a->'metrics'->>'total')::integer=greatest(0,(a->'metrics'->>'base')::integer-50),'Debt changes ranking';
+ assert (a->>'finished')::boolean,'All four rounds complete';
+ ranking:=public.tension_api('leaderboard','QA-ROLLBACK');
+ assert not ((ranking->0) ? 'history'),'Public ranking excludes private decisions';
+ assert not ((ranking->0) ? 'scores'),'Public ranking excludes diagnostic snapshots';
+ host:=public.tension_api('host','QA-ROLLBACK',host_key);
+ assert jsonb_array_length(host->'teams'->0->'history')=4,'Host can read every decision';
+ assert not ((host->'room') ? 'host_hash'),'Host hash remains private';
+ rejected:=false;
+ begin perform public.tension_api(null,'QA-ROLLBACK',null,jsonb_build_object('id',team_id,'round',4,'selected','[]'::jsonb,'reason','Una decisión que nunca debe ser aceptada.')); exception when others then rejected:=true; end;
+ assert rejected,'Null action must never bypass authorization';
+ rejected:=false;
+ begin perform public.tension_api('host','QA-ROLLBACK',other_key); exception when others then rejected:=true; end;
+ assert rejected,'Room code cannot grant host access';
+ rejected:=false;
+ begin perform public.tension_api('team','QA-ROLLBACK',other_key,jsonb_build_object('id',team_id)); exception when others then rejected:=true; end;
+ assert rejected,'Another team cannot read decisions';
+ perform public.tension_api('status','QA-ROLLBACK',host_key,'{"status":"closed"}');
+ rejected:=false;
+ begin perform public.tension_api('join','QA-ROLLBACK',other_key,'{"name":"Equipo nuevo"}'); exception when others then rejected:=true; end;
+ assert rejected,'Closed rooms reject new teams';
+ b:=public.tension_api('join','QA-ROLLBACK',team_key,'{"name":"Equipo verificación"}');
+ assert b->>'id'=team_id,'Existing teams can resume after closing';
+ perform public.tension_api('status','QA-ROLLBACK',host_key,'{"status":"open"}');
+ b:=public.tension_api('join','QA-ROLLBACK',other_key,'{"name":"Tiempo agotado"}');
+ update tension_private.teams set deadline=now()-interval '1 second' where id=(b->>'id')::uuid;
+ b:=public.tension_api('decide','QA-ROLLBACK',other_key,jsonb_build_object('id',b->>'id','round',1,'selected','[]'::jsonb,'reason',''));
+ assert (b->'history'->0->>'timedOut')::boolean,'Expired rounds save a consequence';
+ assert b->'history'->0->>'outcome'='sin intervención','Doing nothing has a consequence';
+ assert not has_table_privilege('anon','tension_private.teams','select'),'No direct anonymous access to decisions';
+ assert not has_table_privilege('authenticated','tension_private.teams','update'),'No direct team overwrites';
+ assert not has_function_privilege('anon','tension_private.team_json(tension_private.teams,boolean)','execute'),'Private helpers are not callable';
+ raise notice 'Room, debt, ownership, history, timeout and isolation checks passed';
+end; $$;
+select 'Room, debt, ownership, history, timeout and isolation checks passed' as verification;
