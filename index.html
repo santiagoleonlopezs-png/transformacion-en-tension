@@ -1,212 +1,85 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Transformación en Tensión</title>
-  <link rel="stylesheet" href="styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b1224">
+  <meta name="description" content="Una experiencia de decisión en equipo. Diagnostica con las 7S, intervén con ocho palancas y descubre el costo de transformar.">
+  <title>Transformación en tensión · Laboratorio de Aprendizaje y Decisión</title>
+  <link rel="stylesheet" href="styles.css?v=20261110">
 </head>
 <body>
-<main class="app-shell">
-  <section id="start-screen" class="screen active">
-    <div class="hero">
-      <div>
-        <span class="eyebrow">Simulador competitivo · 7S + Cultura Agile</span>
-        <h1>Transformación en Tensión</h1>
-        <p>Diagnostica con las 7S de McKinsey, decide con 8 palancas culturales y administra un presupuesto único durante cuatro rondas.</p>
-      </div>
-      <div class="hero-card">
-        <div class="metric"><span>Rondas</span><strong>4</strong></div>
-        <div class="metric"><span>Tiempo</span><strong>7 min</strong></div>
-        <div class="metric"><span>Presupuesto total</span><strong>120</strong></div>
-      </div>
-    </div>
-
-    <form id="team-form" class="panel form-panel">
-      <label>Nombre del equipo
-        <input id="team-name" maxlength="40" required placeholder="Ej. Los Iteradores" />
-      </label>
-      <label>Código de clase
-        <input id="class-code" maxlength="20" required placeholder="Ej. AGILE01" />
-      </label>
-      <button class="primary" type="submit">Entrar al reto</button>
-      <p class="hint">Todos los equipos deben usar el mismo código para competir en el ranking en vivo.</p>
-    </form>
-  </section>
-
-  <section id="game-screen" class="screen">
-    <header class="topbar">
-      <div>
-        <span class="eyebrow">Equipo <strong id="team-label"></strong></span>
-        <h2 id="round-title">Decide dónde intervenir</h2>
-      </div>
-      <div class="topstats">
-        <span>Ronda <strong id="round-label">1</strong>/4</span>
-        <span>Créditos <strong id="credits-label">120</strong>/120</span>
-        <span id="timer-pill" class="timer-pill">⏱ <strong id="timer-label">07:00</strong></span>
-      </div>
-    </header>
-
-    <section class="panel live-scoreboard" aria-label="Ranking en vivo">
-      <div class="section-head">
-        <div>
-          <span class="eyebrow">Competencia en tiempo real</span>
-          <h3>Ranking en vivo</h3>
-        </div>
-        <div class="live-actions">
-          <span id="live-status" class="hint">Cargando equipos...</span>
-          <button id="refresh-live-btn" class="secondary refresh-btn" type="button">Actualizar</button>
-        </div>
-      </div>
-      <div id="podium-live" class="podium-live"></div>
-      <div class="table-wrap live-table-wrap">
-        <table>
-          <thead><tr><th>#</th><th>Equipo</th><th>Puntaje</th><th>Agile</th><th>Coherencia</th><th>Estado</th></tr></thead>
-          <tbody id="live-body"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <div class="grid-main">
-      <section>
-        <div class="panel situation-panel">
-          <span class="eyebrow">Situación de la ronda</span>
-          <h3 id="situation-title"></h3>
-          <p id="situation-context"></p>
-          <div class="dilemma"><strong>Dilema:</strong> <span id="situation-dilemma"></span></div>
-        </div>
-
-        <div class="panel">
-          <div class="section-head">
-            <div>
-              <h3>Diagnóstico 7S de McKinsey</h3>
-              <p>Usa las señales para leer qué partes del sistema están desalineadas.</p>
-            </div>
-            <span id="agile-badge" class="badge">Agile 31/100</span>
+  <div class="ambient" aria-hidden="true"></div>
+  <div class="app-shell">
+    <nav class="brandbar" aria-label="Principal">
+      <a class="brand" href="https://www.hacerlofc.com/laboratorio/"><span class="brand-mark" aria-hidden="true">H</span><span>HACERLO<small>Laboratorio de Aprendizaje y Decisión</small></span></a>
+      <button id="facilitator-btn" class="facilitator-access" type="button">Acceso facilitador <span aria-hidden="true">↗</span></button>
+    </nav>
+    <main>
+      <section id="start-screen" class="screen active" aria-labelledby="start-title">
+        <div class="entry-grid">
+          <div class="hero-copy">
+            <span class="eyebrow"><span class="live-dot"></span> UNA EXPERIENCIA DE DECISIÓN EN EQUIPO</span>
+            <h1 id="start-title">Transformación<br>en <em>tensión.</em></h1>
+            <p class="hero-description">Cambiar el discurso es fácil.<br>Transformar el sistema exige decidir.</p>
+            <p class="muted hero-detail">Lee las señales con las 7S de McKinsey, elige dónde intervenir y enfrenta las consecuencias de tus decisiones.</p>
+            <div class="hero-stats"><div><strong>4</strong><span>rondas</span></div><div><strong>8</strong><span>palancas culturales</span></div><div><strong>120</strong><span>créditos en total</span></div></div>
           </div>
-          <div id="scores-grid" class="scores-grid"></div>
-          <div class="bar-block">
-            <div class="bar-label"><span>Coherencia sistémica</span><strong id="coherence-label">46%</strong></div>
-            <div class="bar"><div id="coherence-bar"></div></div>
+          <div class="entry-card panel">
+            <span class="eyebrow">TU PRÓXIMO RETO</span><h2>Entra en juego</h2><p class="muted">Reúne a tu equipo y comienza el desafío.</p>
+            <form id="team-form">
+              <label for="class-code">Código de sala</label><input id="class-code" maxlength="20" required autocomplete="off" placeholder="Ej. CAMBIO01" pattern="[A-Za-z0-9\-]{4,20}">
+              <p id="room-hint" class="hint" aria-live="polite">Tu facilitador te comparte el código o el enlace.</p>
+              <label for="team-name">Nombre del equipo</label><input id="team-name" maxlength="40" required autocomplete="organization" placeholder="¿Cómo se llama tu equipo?">
+              <button id="join-btn" class="primary wide" type="submit">Entrar al reto <span aria-hidden="true">→</span></button>
+              <p id="join-message" class="message" role="status"></p>
+            </form>
+            <p class="entry-foot">7 minutos por ronda · Máximo 3 palancas por decisión</p>
           </div>
         </div>
+        <div class="journey" aria-label="Las cuatro tensiones"><div><span>01</span><p>Promesa de<br><strong>autonomía</strong></p></div><div><span>02</span><p>Resistencia del<br><strong>liderazgo</strong></p></div><div><span>03</span><p>Fatiga de<br><strong>transformación</strong></p></div><div><span>04</span><p>Escalar o<br><strong>consolidar</strong></p></div></div>
+        <p class="budget-rule"><span aria-hidden="true">↗</span> El presupuesto no se recarga. Si lo superas, continúas con deuda: cada crédito de deuda resta 0,4 puntos al ranking, hasta 50 puntos.</p>
+      </section>
 
-        <div class="panel">
-          <div class="section-head">
-            <div>
-              <h3>Señales del diagnóstico</h3>
-              <p id="signals-caption">Ronda 1 · Lee antes de intervenir.</p>
-            </div>
+      <section id="fac-screen" class="screen" aria-labelledby="fac-title">
+        <header class="topbar"><div><span class="eyebrow">PREPARA LA EXPERIENCIA</span><h1 id="fac-title" class="page-title">Mis salas</h1><p class="muted">Crea una sala, comparte el acceso y observa las decisiones.</p></div><button class="secondary" data-home type="button">Volver</button></header>
+        <div class="fac-setup-grid">
+          <form id="room-form" class="panel">
+            <h2>Una nueva tensión</h2><label for="room-title">Nombre de la clase o sesión</label><input id="room-title" required maxlength="80" placeholder="Ej. Cultura y cambio · Grupo 1">
+            <label for="new-code">Código de sala</label><input id="new-code" required minlength="4" maxlength="20" pattern="[A-Za-z0-9\-]{4,20}" placeholder="Ej. CAMBIO01" autocomplete="off">
+            <p class="hint">Entre 4 y 20 letras, números o guiones.</p><button id="create-room-btn" type="submit" class="primary wide">Crear sala</button><p id="create-message" class="message" role="status"></p>
+          </form>
+          <div class="panel"><h2>Salas de este navegador</h2><p class="hint">El acceso privado se conserva aquí. Guarda la clave de cada sala para abrirla en otro equipo.</p><div id="saved-rooms" class="saved-rooms"></div>
+            <details class="recovery"><summary>Abrir sala con clave privada</summary><form id="recover-form"><label for="recover-code">Código de sala</label><input id="recover-code" required maxlength="20" autocomplete="off"><label for="recover-key">Clave privada del facilitador</label><input id="recover-key" required minlength="64" maxlength="64" type="password" autocomplete="off"><button type="submit" class="secondary wide">Abrir panel</button><p id="recover-message" class="message" role="status"></p></form></details>
           </div>
-          <div id="signals" class="signal-list"></div>
-        </div>
-
-        <div class="panel">
-          <div class="section-head">
-            <div>
-              <h3>Tablero de evolución</h3>
-              <p>Observa cómo cambian los indicadores con cada decisión.</p>
-            </div>
-          </div>
-          <div class="trend-grid">
-            <div class="trend-card"><span>Cultura Agile</span><strong id="trend-agile-main">31/100</strong><small id="trend-agile-delta">Sin cambios todavía</small></div>
-            <div class="trend-card"><span>Coherencia</span><strong id="trend-coherence-main">46%</strong><small id="trend-coherence-delta">Sin cambios todavía</small></div>
-            <div class="trend-card"><span>Créditos restantes</span><strong id="trend-credits-main">120</strong><small>Presupuesto total para las 4 rondas</small></div>
-          </div>
-          <div id="round-board" class="round-board empty">Aún no hay rondas ejecutadas.</div>
-        </div>
-
-        <div class="panel">
-          <h3>Historial de decisiones</h3>
-          <div id="history" class="history empty">Aún no has ejecutado intervenciones.</div>
         </div>
       </section>
 
-      <aside>
-        <div class="lever-sticky">
-          <div class="panel lever-panel">
-            <div class="section-head">
-              <div>
-                <h3>8 palancas culturales</h3>
-                <p>Selecciona máximo 3. El presupuesto no se recarga.</p>
-              </div>
-              <span id="selection-label" class="small">0 seleccionadas</span>
-            </div>
-            <div id="levers-grid" class="lever-grid"></div>
-
-            <label class="reason-label" for="reason-input">Justifica la decisión en una frase</label>
-            <textarea id="reason-input" maxlength="180" rows="3" placeholder="Sintetiza por qué estas palancas responden al diagnóstico..."></textarea>
-            <div class="reason-meta"><span>Mínimo 20 caracteres · máximo 180</span><strong id="reason-count">0/180</strong></div>
-
-            <button id="execute-btn" class="primary wide" type="button">Ejecutar decisión</button>
-            <p id="validation-msg" class="validation"></p>
-          </div>
+      <section id="host-screen" class="screen" aria-labelledby="host-title">
+        <header class="topbar"><div><span class="eyebrow">VISTA DEL FACILITADOR</span><h1 id="host-title" class="page-title">Tu sala</h1><p id="host-status" class="hint" aria-live="polite"></p></div><button id="back-rooms" class="secondary" type="button">Mis salas</button></header>
+        <div class="host-top-grid">
+          <section class="panel share-panel" aria-labelledby="share-title"><div><span class="eyebrow">INVITA A LOS EQUIPOS</span><h2 id="share-title">Comparte la sala</h2><div class="room-code" id="share-code"></div><label for="share-link">Enlace directo</label><input id="share-link" type="url" readonly><div class="actions"><button id="copy-invite" class="primary" type="button">Copiar invitación</button><button id="share-invite" class="secondary" type="button">Compartir</button></div><p id="share-message" class="hint" role="status"></p></div><div class="qr-block"><div id="room-qr" role="img" aria-label="Código QR para entrar a la sala"></div><span>Escanea y entra</span></div></section>
+          <section class="panel room-controls"><h2>Control de sala</h2><div class="host-totals"><div><strong id="host-team-count">0</strong><span>equipos</span></div><div><strong id="host-decision-count">0</strong><span>decisiones</span></div><div><strong id="host-debt-count">0</strong><span>con deuda</span></div></div><button id="toggle-room" class="secondary wide" type="button">Cerrar ingreso</button><p class="hint">Cerrar el ingreso impide nuevos equipos. Los que ya están pueden terminar.</p><details class="private-access"><summary>Guardar acceso privado</summary><p class="hint">Guarda esta clave solo para ti. Permite consultar las decisiones y administrar la sala desde otro dispositivo.</p><button id="copy-host-key" class="secondary" type="button">Copiar clave privada</button><p id="key-message" class="hint" role="status"></p></details></section>
         </div>
+        <section class="panel"><div class="section-head"><div><span class="eyebrow">OBSERVA, PREGUNTA, CONECTA</span><h2>Decisiones de los equipos</h2></div><div class="actions"><button id="host-refresh" class="secondary" type="button">Actualizar</button><button id="export-decisions" class="secondary" type="button">Descargar decisiones</button></div></div><div class="filter-row"><label for="team-filter">Equipo<select id="team-filter"><option value="">Todos los equipos</option></select></label><label for="round-filter">Ronda<select id="round-filter"><option value="">Todas las rondas</option><option value="1">Ronda 1</option><option value="2">Ronda 2</option><option value="3">Ronda 3</option><option value="4">Ronda 4</option></select></label></div><div id="host-teams"></div></section>
+      </section>
 
-        <div class="panel">
-          <div class="section-head">
-            <div>
-              <h3>Ranking en vivo</h3>
-              <p>Se actualiza automáticamente.</p>
-            </div>
-            <button id="refresh-live-btn" class="secondary refresh-btn" type="button">Actualizar</button>
-          </div>
-          <div id="live-status" class="hint">Cargando...</div>
-          <div class="table-wrap compact-table">
-            <table>
-              <thead><tr><th>#</th><th>Equipo</th><th>Puntaje</th><th>Estado</th></tr></thead>
-              <tbody id="live-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </aside>
-    </div>
+      <section id="game-screen" class="screen" aria-labelledby="round-title">
+        <header class="topbar"><div><span class="eyebrow">EQUIPO <strong id="team-label"></strong> <span class="separator">/</span> SALA <strong id="team-room"></strong></span><h1 id="round-title" class="page-title"></h1></div><div class="topstats"><span>Ronda <strong id="round-label">1</strong>/4</span><span id="balance-pill">Saldo <strong id="credits-label">120</strong></span><span id="timer-pill" class="timer-pill">Tiempo <strong id="timer-label">07:00</strong></span></div></header>
+        <p id="sync-message" class="sync-message" role="status"></p>
+        <div class="progress-track" aria-label="Avance por rondas" id="round-progress"></div>
+        <div class="grid-main"><div class="diagnosis-column">
+          <section class="panel situation-panel"><span class="eyebrow">LA TENSIÓN DE ESTA RONDA</span><h2 id="situation-title"></h2><p id="situation-context"></p><div class="dilemma" id="situation-dilemma"></div><div id="signals" class="signal-list"></div></section>
+          <section class="panel"><div class="section-head"><div><span class="eyebrow">LEE EL SISTEMA</span><h2>Diagnóstico 7S</h2></div><span class="badge" id="agile-badge"></span></div><p class="hint">Cada dimensión se expresa de 1 a 5. La coherencia indica el equilibrio entre ellas.</p><div id="scores-grid" class="scores-grid"></div><div class="bar-label"><span>Coherencia sistémica</span><strong id="coherence-label"></strong></div><div class="bar"><div id="coherence-bar"></div></div></section>
+          <details class="panel" id="history-details"><summary>Tu recorrido y decisiones</summary><div id="round-board" class="table-wrap"></div><div id="history" class="history"></div></details>
+        </div><aside><section class="panel lever-panel"><div class="section-head"><div><span class="eyebrow">ELIGE DÓNDE INTERVENIR</span><h2>Palancas culturales</h2></div><span id="selection-label" class="badge">0/3</span></div><p class="hint">Puedes elegir hasta tres o decidir no intervenir.</p><div id="levers-grid" class="lever-grid"></div><div id="budget-preview" class="budget-preview" aria-live="polite"></div><label for="reason-input">¿Por qué esta decisión responde al diagnóstico?</label><textarea id="reason-input" maxlength="180" rows="3" placeholder="Conecta las señales con tu intervención..."></textarea><div class="reason-meta"><span>Mínimo 20 caracteres</span><span id="reason-count">0/180</span></div><button id="execute-btn" class="primary wide" type="button">Ejecutar decisión</button><p id="validation-msg" class="message" role="status"></p></section></aside></div>
+        <section id="round-footer" class="panel round-result hidden" aria-live="polite"><span class="eyebrow">CONSECUENCIA DE LA DECISIÓN</span><h2 id="footer-result-title"></h2><p id="footer-result-text"></p><button id="next-btn" class="primary" type="button">Continuar</button></section>
+        <details class="panel ranking-panel"><summary>Ranking de la sala <span id="ranking-count" class="badge"></span></summary><p id="live-status" class="hint" role="status"></p><div class="table-wrap"><table><thead><tr><th>#</th><th>Equipo</th><th>Puntaje</th><th>Agile</th><th>Coherencia</th><th>Saldo / deuda</th><th>Estado</th></tr></thead><tbody id="live-body"></tbody></table></div></details>
+      </section>
 
-    <div id="round-footer" class="round-footer hidden" aria-live="polite">
-      <div>
-        <strong id="footer-result-title">Ronda resuelta</strong>
-        <span id="footer-result-text"></span>
-      </div>
-      <button id="next-btn" class="primary next-large" type="button">Continuar a la ronda 2</button>
-    </div>
-  </section>
-
-  <section id="finish-screen" class="screen">
-    <div class="finish-card panel">
-      <span class="eyebrow">Transformación finalizada</span>
-      <h2 id="finish-title">Resultado</h2>
-      <div class="final-score" id="final-score">0</div>
-      <p id="finish-copy"></p>
-      <div class="final-metrics">
-        <div><span>Cultura Agile</span><strong id="final-agile">0</strong></div>
-        <div><span>Coherencia 7S</span><strong id="final-coherence">0%</strong></div>
-        <div><span>Créditos restantes</span><strong id="final-credits">0</strong></div>
-      </div>
-      <div class="actions">
-        <button id="leaderboard-btn" class="primary" type="button">Ver ranking completo</button>
-        <button id="restart-btn" class="secondary" type="button">Jugar de nuevo</button>
-      </div>
-    </div>
-  </section>
-
-  <section id="leaderboard-screen" class="screen">
-    <header class="topbar">
-      <div><span class="eyebrow">Código <strong id="leaderboard-code"></strong></span><h2>Ranking de transformación</h2></div>
-      <button id="back-finish-btn" class="secondary" type="button">Volver</button>
-    </header>
-    <div class="panel">
-      <div id="leaderboard-status" class="hint">Cargando ranking…</div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>#</th><th>Equipo</th><th>Puntaje</th><th>Agile</th><th>Coherencia</th><th>Créditos</th><th>Estado</th></tr></thead>
-          <tbody id="leaderboard-body"></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-</main>
-<script src="config.js"></script>
-<script src="app.js"></script>
+      <section id="finish-screen" class="screen" aria-labelledby="finish-title"><div class="panel finish-card"><span class="eyebrow">CUATRO RONDAS. UN SISTEMA TRANSFORMADO.</span><h1 id="finish-title" class="page-title"></h1><div class="final-score"><strong id="final-score">0</strong><span>/100 puntos</span></div><div class="final-metrics"><div><span>Cultura Agile</span><strong id="final-agile"></strong></div><div><span>Coherencia</span><strong id="final-coherence"></strong></div><div><span>Saldo final</span><strong id="final-credits"></strong></div><div><span>Efecto de la deuda</span><strong id="final-penalty"></strong></div></div><p id="finish-copy" class="muted"></p><div class="actions centered"><button id="review-decisions" class="secondary" type="button">Ver mis decisiones</button><button id="finish-home" class="secondary" type="button">Volver al inicio</button></div><div id="finish-history" class="hidden history"></div></div><section class="panel"><h2>Ranking de la sala</h2><p id="final-live-status" class="hint" role="status"></p><div class="table-wrap"><table><thead><tr><th>#</th><th>Equipo</th><th>Puntaje</th><th>Agile</th><th>Coherencia</th><th>Saldo / deuda</th><th>Estado</th></tr></thead><tbody id="final-live-body"></tbody></table></div></section></section>
+    </main>
+    <footer class="site-footer">Laboratorio de Aprendizaje y Decisión <span>HACERLO · Fábrica del Comportamiento</span></footer>
+  </div>
+  <script src="config.js?v=20261110"></script><script src="vendor/qrcode.min.js"></script><script type="module" src="app.js?v=20261110"></script>
 </body>
 </html>

@@ -1,0 +1,1270 @@
+{
+  "room": {
+    "code": "QA-FIXTURE",
+    "title": "Sala de prueba",
+    "status": "open",
+    "created_at": "2026-11-10T00:14:27.106618+00:00"
+  },
+  "snapshots": [
+    {
+      "id": "d41067fc-4234-48a0-b03e-f0f96925e9e7",
+      "name": "Equipo de prueba",
+      "round": 1,
+      "scores": {
+        "Staff": 4,
+        "Style": 1,
+        "Skills": 3,
+        "Systems": 1,
+        "Strategy": 4,
+        "Structure": 2,
+        "Shared Values": 2
+      },
+      "credits": 120,
+      "history": [],
+      "metrics": {
+        "base": 52,
+        "debt": 0,
+        "agile": 48,
+        "total": 52,
+        "penalty": 0,
+        "coherence": 46,
+        "efficiency": 100
+      },
+      "deadline": "2026-11-10T00:21:27.106618+00:00",
+      "finished": false,
+      "resolved": false,
+      "room_code": "QA-FIXTURE",
+      "created_at": "2026-11-10T00:14:27.106618+00:00",
+      "server_now": "2026-11-10T00:14:27.106618+00:00",
+      "updated_at": "2026-11-10T00:14:27.106618+00:00"
+    },
+    {
+      "id": "d41067fc-4234-48a0-b03e-f0f96925e9e7",
+      "name": "Equipo de prueba",
+      "round": 1,
+      "scores": {
+        "Staff": 4,
+        "Style": 4,
+        "Skills": 3,
+        "Systems": 5,
+        "Strategy": 4,
+        "Structure": 5,
+        "Shared Values": 3
+      },
+      "credits": 50,
+      "history": [
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 0,
+          "agile": 75,
+          "round": 1,
+          "title": "La promesa de autonomía",
+          "total": 67,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "alineada",
+          "penalty": 0,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 64,
+          "synergies": [
+            "Arquitectura + procesos reducen fricción estructural y burocrática.",
+            "Liderazgo + arquitectura hacen creíble la autonomía."
+          ],
+          "deltaAgile": 27,
+          "consequence": "La decisión está alineada con el diagnóstico y contiene la tensión principal.",
+          "creditsLeft": 50,
+          "scoresAfter": {
+            "Staff": 4,
+            "Style": 4,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 3
+          },
+          "scoresBefore": {
+            "Staff": 4,
+            "Style": 1,
+            "Skills": 3,
+            "Systems": 1,
+            "Strategy": 4,
+            "Structure": 2,
+            "Shared Values": 2
+          },
+          "deltaCoherence": 18
+        }
+      ],
+      "metrics": {
+        "base": 67,
+        "debt": 0,
+        "agile": 75,
+        "total": 67,
+        "penalty": 0,
+        "coherence": 64,
+        "efficiency": 42
+      },
+      "deadline": "2026-11-10T00:21:27.106618+00:00",
+      "finished": false,
+      "resolved": true,
+      "room_code": "QA-FIXTURE",
+      "created_at": "2026-11-10T00:14:27.106618+00:00",
+      "server_now": "2026-11-10T00:14:27.106618+00:00",
+      "updated_at": "2026-11-10T00:14:27.106618+00:00"
+    },
+    {
+      "id": "d41067fc-4234-48a0-b03e-f0f96925e9e7",
+      "name": "Equipo de prueba",
+      "round": 2,
+      "scores": {
+        "Staff": 4,
+        "Style": 4,
+        "Skills": 3,
+        "Systems": 5,
+        "Strategy": 4,
+        "Structure": 5,
+        "Shared Values": 3
+      },
+      "credits": 50,
+      "history": [
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 0,
+          "agile": 75,
+          "round": 1,
+          "title": "La promesa de autonomía",
+          "total": 67,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "alineada",
+          "penalty": 0,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 64,
+          "synergies": [
+            "Arquitectura + procesos reducen fricción estructural y burocrática.",
+            "Liderazgo + arquitectura hacen creíble la autonomía."
+          ],
+          "deltaAgile": 27,
+          "consequence": "La decisión está alineada con el diagnóstico y contiene la tensión principal.",
+          "creditsLeft": 50,
+          "scoresAfter": {
+            "Staff": 4,
+            "Style": 4,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 3
+          },
+          "scoresBefore": {
+            "Staff": 4,
+            "Style": 1,
+            "Skills": 3,
+            "Systems": 1,
+            "Strategy": 4,
+            "Structure": 2,
+            "Shared Values": 2
+          },
+          "deltaCoherence": 18
+        }
+      ],
+      "metrics": {
+        "base": 67,
+        "debt": 0,
+        "agile": 75,
+        "total": 67,
+        "penalty": 0,
+        "coherence": 64,
+        "efficiency": 42
+      },
+      "deadline": "2026-11-10T00:21:27.106618+00:00",
+      "finished": false,
+      "resolved": false,
+      "room_code": "QA-FIXTURE",
+      "created_at": "2026-11-10T00:14:27.106618+00:00",
+      "server_now": "2026-11-10T00:14:27.106618+00:00",
+      "updated_at": "2026-11-10T00:14:27.106618+00:00"
+    },
+    {
+      "id": "d41067fc-4234-48a0-b03e-f0f96925e9e7",
+      "name": "Equipo de prueba",
+      "round": 2,
+      "scores": {
+        "Staff": 3,
+        "Style": 5,
+        "Skills": 3,
+        "Systems": 5,
+        "Strategy": 4,
+        "Structure": 5,
+        "Shared Values": 4
+      },
+      "credits": -20,
+      "history": [
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 0,
+          "agile": 75,
+          "round": 1,
+          "title": "La promesa de autonomía",
+          "total": 67,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "alineada",
+          "penalty": 0,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 64,
+          "synergies": [
+            "Arquitectura + procesos reducen fricción estructural y burocrática.",
+            "Liderazgo + arquitectura hacen creíble la autonomía."
+          ],
+          "deltaAgile": 27,
+          "consequence": "La decisión está alineada con el diagnóstico y contiene la tensión principal.",
+          "creditsLeft": 50,
+          "scoresAfter": {
+            "Staff": 4,
+            "Style": 4,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 3
+          },
+          "scoresBefore": {
+            "Staff": 4,
+            "Style": 1,
+            "Skills": 3,
+            "Systems": 1,
+            "Strategy": 4,
+            "Structure": 2,
+            "Shared Values": 2
+          },
+          "deltaCoherence": 18
+        },
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 20,
+          "agile": 77,
+          "round": 2,
+          "title": "La resistencia de los mandos medios",
+          "total": 56,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "alineada",
+          "penalty": 8,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 64,
+          "synergies": [],
+          "deltaAgile": 2,
+          "consequence": "La decisión está alineada con el diagnóstico y contiene la tensión principal. La sobreintervención genera fatiga y dispersión.",
+          "creditsLeft": -20,
+          "scoresAfter": {
+            "Staff": 3,
+            "Style": 5,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 4
+          },
+          "scoresBefore": {
+            "Staff": 4,
+            "Style": 4,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 3
+          },
+          "deltaCoherence": 0
+        }
+      ],
+      "metrics": {
+        "base": 64,
+        "debt": 20,
+        "agile": 77,
+        "total": 56,
+        "penalty": 8,
+        "coherence": 64,
+        "efficiency": 0
+      },
+      "deadline": "2026-11-10T00:21:27.106618+00:00",
+      "finished": false,
+      "resolved": true,
+      "room_code": "QA-FIXTURE",
+      "created_at": "2026-11-10T00:14:27.106618+00:00",
+      "server_now": "2026-11-10T00:14:27.106618+00:00",
+      "updated_at": "2026-11-10T00:14:27.106618+00:00"
+    },
+    {
+      "id": "d41067fc-4234-48a0-b03e-f0f96925e9e7",
+      "name": "Equipo de prueba",
+      "round": 3,
+      "scores": {
+        "Staff": 3,
+        "Style": 5,
+        "Skills": 3,
+        "Systems": 5,
+        "Strategy": 4,
+        "Structure": 5,
+        "Shared Values": 4
+      },
+      "credits": -20,
+      "history": [
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 0,
+          "agile": 75,
+          "round": 1,
+          "title": "La promesa de autonomía",
+          "total": 67,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "alineada",
+          "penalty": 0,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 64,
+          "synergies": [
+            "Arquitectura + procesos reducen fricción estructural y burocrática.",
+            "Liderazgo + arquitectura hacen creíble la autonomía."
+          ],
+          "deltaAgile": 27,
+          "consequence": "La decisión está alineada con el diagnóstico y contiene la tensión principal.",
+          "creditsLeft": 50,
+          "scoresAfter": {
+            "Staff": 4,
+            "Style": 4,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 3
+          },
+          "scoresBefore": {
+            "Staff": 4,
+            "Style": 1,
+            "Skills": 3,
+            "Systems": 1,
+            "Strategy": 4,
+            "Structure": 2,
+            "Shared Values": 2
+          },
+          "deltaCoherence": 18
+        },
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 20,
+          "agile": 77,
+          "round": 2,
+          "title": "La resistencia de los mandos medios",
+          "total": 56,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "alineada",
+          "penalty": 8,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 64,
+          "synergies": [],
+          "deltaAgile": 2,
+          "consequence": "La decisión está alineada con el diagnóstico y contiene la tensión principal. La sobreintervención genera fatiga y dispersión.",
+          "creditsLeft": -20,
+          "scoresAfter": {
+            "Staff": 3,
+            "Style": 5,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 4
+          },
+          "scoresBefore": {
+            "Staff": 4,
+            "Style": 4,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 3
+          },
+          "deltaCoherence": 0
+        }
+      ],
+      "metrics": {
+        "base": 64,
+        "debt": 20,
+        "agile": 77,
+        "total": 56,
+        "penalty": 8,
+        "coherence": 64,
+        "efficiency": 0
+      },
+      "deadline": "2026-11-10T00:21:27.106618+00:00",
+      "finished": false,
+      "resolved": false,
+      "room_code": "QA-FIXTURE",
+      "created_at": "2026-11-10T00:14:27.106618+00:00",
+      "server_now": "2026-11-10T00:14:27.106618+00:00",
+      "updated_at": "2026-11-10T00:14:27.106618+00:00"
+    },
+    {
+      "id": "d41067fc-4234-48a0-b03e-f0f96925e9e7",
+      "name": "Equipo de prueba",
+      "round": 3,
+      "scores": {
+        "Staff": 1,
+        "Style": 5,
+        "Skills": 2,
+        "Systems": 5,
+        "Strategy": 4,
+        "Structure": 5,
+        "Shared Values": 4
+      },
+      "credits": -90,
+      "history": [
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 0,
+          "agile": 75,
+          "round": 1,
+          "title": "La promesa de autonomía",
+          "total": 67,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "alineada",
+          "penalty": 0,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 64,
+          "synergies": [
+            "Arquitectura + procesos reducen fricción estructural y burocrática.",
+            "Liderazgo + arquitectura hacen creíble la autonomía."
+          ],
+          "deltaAgile": 27,
+          "consequence": "La decisión está alineada con el diagnóstico y contiene la tensión principal.",
+          "creditsLeft": 50,
+          "scoresAfter": {
+            "Staff": 4,
+            "Style": 4,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 3
+          },
+          "scoresBefore": {
+            "Staff": 4,
+            "Style": 1,
+            "Skills": 3,
+            "Systems": 1,
+            "Strategy": 4,
+            "Structure": 2,
+            "Shared Values": 2
+          },
+          "deltaCoherence": 18
+        },
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 20,
+          "agile": 77,
+          "round": 2,
+          "title": "La resistencia de los mandos medios",
+          "total": 56,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "alineada",
+          "penalty": 8,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 64,
+          "synergies": [],
+          "deltaAgile": 2,
+          "consequence": "La decisión está alineada con el diagnóstico y contiene la tensión principal. La sobreintervención genera fatiga y dispersión.",
+          "creditsLeft": -20,
+          "scoresAfter": {
+            "Staff": 3,
+            "Style": 5,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 4
+          },
+          "scoresBefore": {
+            "Staff": 4,
+            "Style": 4,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 3
+          },
+          "deltaCoherence": 0
+        },
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 90,
+          "agile": 60,
+          "round": 3,
+          "title": "Fatiga de transformación",
+          "total": 5,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "contraproducente",
+          "penalty": 36,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 28,
+          "synergies": [],
+          "deltaAgile": -17,
+          "consequence": "La decisión consume recursos, pero no responde al problema central. El sistema se deteriora. La sobreintervención genera fatiga y dispersión.",
+          "creditsLeft": -90,
+          "scoresAfter": {
+            "Staff": 1,
+            "Style": 5,
+            "Skills": 2,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 4
+          },
+          "scoresBefore": {
+            "Staff": 3,
+            "Style": 5,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 4
+          },
+          "deltaCoherence": -36
+        }
+      ],
+      "metrics": {
+        "base": 41,
+        "debt": 90,
+        "agile": 60,
+        "total": 5,
+        "penalty": 36,
+        "coherence": 28,
+        "efficiency": 0
+      },
+      "deadline": "2026-11-10T00:21:27.106618+00:00",
+      "finished": false,
+      "resolved": true,
+      "room_code": "QA-FIXTURE",
+      "created_at": "2026-11-10T00:14:27.106618+00:00",
+      "server_now": "2026-11-10T00:14:27.106618+00:00",
+      "updated_at": "2026-11-10T00:14:27.106618+00:00"
+    },
+    {
+      "id": "d41067fc-4234-48a0-b03e-f0f96925e9e7",
+      "name": "Equipo de prueba",
+      "round": 4,
+      "scores": {
+        "Staff": 1,
+        "Style": 5,
+        "Skills": 2,
+        "Systems": 5,
+        "Strategy": 4,
+        "Structure": 5,
+        "Shared Values": 4
+      },
+      "credits": -90,
+      "history": [
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 0,
+          "agile": 75,
+          "round": 1,
+          "title": "La promesa de autonomía",
+          "total": 67,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "alineada",
+          "penalty": 0,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 64,
+          "synergies": [
+            "Arquitectura + procesos reducen fricción estructural y burocrática.",
+            "Liderazgo + arquitectura hacen creíble la autonomía."
+          ],
+          "deltaAgile": 27,
+          "consequence": "La decisión está alineada con el diagnóstico y contiene la tensión principal.",
+          "creditsLeft": 50,
+          "scoresAfter": {
+            "Staff": 4,
+            "Style": 4,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 3
+          },
+          "scoresBefore": {
+            "Staff": 4,
+            "Style": 1,
+            "Skills": 3,
+            "Systems": 1,
+            "Strategy": 4,
+            "Structure": 2,
+            "Shared Values": 2
+          },
+          "deltaCoherence": 18
+        },
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 20,
+          "agile": 77,
+          "round": 2,
+          "title": "La resistencia de los mandos medios",
+          "total": 56,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "alineada",
+          "penalty": 8,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 64,
+          "synergies": [],
+          "deltaAgile": 2,
+          "consequence": "La decisión está alineada con el diagnóstico y contiene la tensión principal. La sobreintervención genera fatiga y dispersión.",
+          "creditsLeft": -20,
+          "scoresAfter": {
+            "Staff": 3,
+            "Style": 5,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 4
+          },
+          "scoresBefore": {
+            "Staff": 4,
+            "Style": 4,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 3
+          },
+          "deltaCoherence": 0
+        },
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 90,
+          "agile": 60,
+          "round": 3,
+          "title": "Fatiga de transformación",
+          "total": 5,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "contraproducente",
+          "penalty": 36,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 28,
+          "synergies": [],
+          "deltaAgile": -17,
+          "consequence": "La decisión consume recursos, pero no responde al problema central. El sistema se deteriora. La sobreintervención genera fatiga y dispersión.",
+          "creditsLeft": -90,
+          "scoresAfter": {
+            "Staff": 1,
+            "Style": 5,
+            "Skills": 2,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 4
+          },
+          "scoresBefore": {
+            "Staff": 3,
+            "Style": 5,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 4
+          },
+          "deltaCoherence": -36
+        }
+      ],
+      "metrics": {
+        "base": 41,
+        "debt": 90,
+        "agile": 60,
+        "total": 5,
+        "penalty": 36,
+        "coherence": 28,
+        "efficiency": 0
+      },
+      "deadline": "2026-11-10T00:21:27.106618+00:00",
+      "finished": false,
+      "resolved": false,
+      "room_code": "QA-FIXTURE",
+      "created_at": "2026-11-10T00:14:27.106618+00:00",
+      "server_now": "2026-11-10T00:14:27.106618+00:00",
+      "updated_at": "2026-11-10T00:14:27.106618+00:00"
+    },
+    {
+      "id": "d41067fc-4234-48a0-b03e-f0f96925e9e7",
+      "name": "Equipo de prueba",
+      "round": 4,
+      "scores": {
+        "Staff": 1,
+        "Style": 5,
+        "Skills": 2,
+        "Systems": 5,
+        "Strategy": 4,
+        "Structure": 5,
+        "Shared Values": 5
+      },
+      "credits": -160,
+      "history": [
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 0,
+          "agile": 75,
+          "round": 1,
+          "title": "La promesa de autonomía",
+          "total": 67,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "alineada",
+          "penalty": 0,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 64,
+          "synergies": [
+            "Arquitectura + procesos reducen fricción estructural y burocrática.",
+            "Liderazgo + arquitectura hacen creíble la autonomía."
+          ],
+          "deltaAgile": 27,
+          "consequence": "La decisión está alineada con el diagnóstico y contiene la tensión principal.",
+          "creditsLeft": 50,
+          "scoresAfter": {
+            "Staff": 4,
+            "Style": 4,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 3
+          },
+          "scoresBefore": {
+            "Staff": 4,
+            "Style": 1,
+            "Skills": 3,
+            "Systems": 1,
+            "Strategy": 4,
+            "Structure": 2,
+            "Shared Values": 2
+          },
+          "deltaCoherence": 18
+        },
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 20,
+          "agile": 77,
+          "round": 2,
+          "title": "La resistencia de los mandos medios",
+          "total": 56,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "alineada",
+          "penalty": 8,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 64,
+          "synergies": [],
+          "deltaAgile": 2,
+          "consequence": "La decisión está alineada con el diagnóstico y contiene la tensión principal. La sobreintervención genera fatiga y dispersión.",
+          "creditsLeft": -20,
+          "scoresAfter": {
+            "Staff": 3,
+            "Style": 5,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 4
+          },
+          "scoresBefore": {
+            "Staff": 4,
+            "Style": 4,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 3
+          },
+          "deltaCoherence": 0
+        },
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 90,
+          "agile": 60,
+          "round": 3,
+          "title": "Fatiga de transformación",
+          "total": 5,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "contraproducente",
+          "penalty": 36,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 28,
+          "synergies": [],
+          "deltaAgile": -17,
+          "consequence": "La decisión consume recursos, pero no responde al problema central. El sistema se deteriora. La sobreintervención genera fatiga y dispersión.",
+          "creditsLeft": -90,
+          "scoresAfter": {
+            "Staff": 1,
+            "Style": 5,
+            "Skills": 2,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 4
+          },
+          "scoresBefore": {
+            "Staff": 3,
+            "Style": 5,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 4
+          },
+          "deltaCoherence": -36
+        },
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 160,
+          "agile": 62,
+          "round": 4,
+          "title": "¿Escalar o consolidar?",
+          "total": 0,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "alineada",
+          "penalty": 50,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 28,
+          "synergies": [],
+          "deltaAgile": 2,
+          "consequence": "La decisión está alineada con el diagnóstico y contiene la tensión principal.",
+          "creditsLeft": -160,
+          "scoresAfter": {
+            "Staff": 1,
+            "Style": 5,
+            "Skills": 2,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 5
+          },
+          "scoresBefore": {
+            "Staff": 1,
+            "Style": 5,
+            "Skills": 2,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 4
+          },
+          "deltaCoherence": 0
+        }
+      ],
+      "metrics": {
+        "base": 42,
+        "debt": 160,
+        "agile": 62,
+        "total": 0,
+        "penalty": 50,
+        "coherence": 28,
+        "efficiency": 0
+      },
+      "deadline": "2026-11-10T00:21:27.106618+00:00",
+      "finished": false,
+      "resolved": true,
+      "room_code": "QA-FIXTURE",
+      "created_at": "2026-11-10T00:14:27.106618+00:00",
+      "server_now": "2026-11-10T00:14:27.106618+00:00",
+      "updated_at": "2026-11-10T00:14:27.106618+00:00"
+    },
+    {
+      "id": "d41067fc-4234-48a0-b03e-f0f96925e9e7",
+      "name": "Equipo de prueba",
+      "round": 4,
+      "scores": {
+        "Staff": 1,
+        "Style": 5,
+        "Skills": 2,
+        "Systems": 5,
+        "Strategy": 4,
+        "Structure": 5,
+        "Shared Values": 5
+      },
+      "credits": -160,
+      "history": [
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 0,
+          "agile": 75,
+          "round": 1,
+          "title": "La promesa de autonomía",
+          "total": 67,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "alineada",
+          "penalty": 0,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 64,
+          "synergies": [
+            "Arquitectura + procesos reducen fricción estructural y burocrática.",
+            "Liderazgo + arquitectura hacen creíble la autonomía."
+          ],
+          "deltaAgile": 27,
+          "consequence": "La decisión está alineada con el diagnóstico y contiene la tensión principal.",
+          "creditsLeft": 50,
+          "scoresAfter": {
+            "Staff": 4,
+            "Style": 4,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 3
+          },
+          "scoresBefore": {
+            "Staff": 4,
+            "Style": 1,
+            "Skills": 3,
+            "Systems": 1,
+            "Strategy": 4,
+            "Structure": 2,
+            "Shared Values": 2
+          },
+          "deltaCoherence": 18
+        },
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 20,
+          "agile": 77,
+          "round": 2,
+          "title": "La resistencia de los mandos medios",
+          "total": 56,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "alineada",
+          "penalty": 8,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 64,
+          "synergies": [],
+          "deltaAgile": 2,
+          "consequence": "La decisión está alineada con el diagnóstico y contiene la tensión principal. La sobreintervención genera fatiga y dispersión.",
+          "creditsLeft": -20,
+          "scoresAfter": {
+            "Staff": 3,
+            "Style": 5,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 4
+          },
+          "scoresBefore": {
+            "Staff": 4,
+            "Style": 4,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 3
+          },
+          "deltaCoherence": 0
+        },
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 90,
+          "agile": 60,
+          "round": 3,
+          "title": "Fatiga de transformación",
+          "total": 5,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "contraproducente",
+          "penalty": 36,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 28,
+          "synergies": [],
+          "deltaAgile": -17,
+          "consequence": "La decisión consume recursos, pero no responde al problema central. El sistema se deteriora. La sobreintervención genera fatiga y dispersión.",
+          "creditsLeft": -90,
+          "scoresAfter": {
+            "Staff": 1,
+            "Style": 5,
+            "Skills": 2,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 4
+          },
+          "scoresBefore": {
+            "Staff": 3,
+            "Style": 5,
+            "Skills": 3,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 4
+          },
+          "deltaCoherence": -36
+        },
+        {
+          "at": "2026-11-10T00:14:27.106618+00:00",
+          "cost": 70,
+          "debt": 160,
+          "agile": 62,
+          "round": 4,
+          "title": "¿Escalar o consolidar?",
+          "total": 0,
+          "levers": [
+            "Arquitectura organizacional",
+            "Procesos y tecnología",
+            "Liderazgo"
+          ],
+          "reason": "Alineamos procesos, estructura y liderazgo para responder al diagnóstico.",
+          "outcome": "alineada",
+          "penalty": 50,
+          "leverIds": [
+            "architecture",
+            "process",
+            "leadership"
+          ],
+          "timedOut": false,
+          "coherence": 28,
+          "synergies": [],
+          "deltaAgile": 2,
+          "consequence": "La decisión está alineada con el diagnóstico y contiene la tensión principal.",
+          "creditsLeft": -160,
+          "scoresAfter": {
+            "Staff": 1,
+            "Style": 5,
+            "Skills": 2,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 5
+          },
+          "scoresBefore": {
+            "Staff": 1,
+            "Style": 5,
+            "Skills": 2,
+            "Systems": 5,
+            "Strategy": 4,
+            "Structure": 5,
+            "Shared Values": 4
+          },
+          "deltaCoherence": 0
+        }
+      ],
+      "metrics": {
+        "base": 42,
+        "debt": 160,
+        "agile": 62,
+        "total": 0,
+        "penalty": 50,
+        "coherence": 28,
+        "efficiency": 0
+      },
+      "deadline": "2026-11-10T00:21:27.106618+00:00",
+      "finished": true,
+      "resolved": true,
+      "room_code": "QA-FIXTURE",
+      "created_at": "2026-11-10T00:14:27.106618+00:00",
+      "server_now": "2026-11-10T00:14:27.106618+00:00",
+      "updated_at": "2026-11-10T00:14:27.106618+00:00"
+    }
+  ]
+}
