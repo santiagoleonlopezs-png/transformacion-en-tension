@@ -110,10 +110,22 @@ export function csvCell(value) {
   return '"' + text.replaceAll('"', '""') + '"';
 }
 export function decisionsCsv(room, teams) {
-  const rows = [['Sala','Equipo','Ronda','Situación','Palancas','Justificación','Resultado','Costo','Saldo','Deuda','Penalización','Agile','Coherencia','Puntaje','Tiempo agotado','Fecha UTC']];
+  const rows = [['Sala','Equipo','Ronda','Situación','Palancas','Justificación','Resultado','Costo','Saldo','Deuda','Penalización','Agile','Coherencia','Puntaje','Tiempo agotado','Fecha UTC','Objetivo','Diagnóstico','Predicción','Puntos ronda','Penalizaciones']];
   for (const team of teams) {
     if (!team.history.length) rows.push([room.title,team.name,'','','','Sin decisiones registradas']);
-    for (const h of team.history) rows.push([room.title,team.name,h.round,h.title,h.levers.join(' | '),h.reason,h.outcome,h.cost,h.creditsLeft,h.debt,h.penalty,h.agile,h.coherence,h.total,h.timedOut?'Sí':'No',h.at]);
+    for (const h of team.history) rows.push([room.title,team.name,h.round,h.title,h.levers.join(' | '),h.reason,h.outcome,h.cost,h.creditsLeft,h.debt,h.penalty,h.agile,h.coherence,h.total,h.timedOut?'Sí':'No',h.at,dimensionLabels[h.target]||h.target||'',h.attention?JSON.stringify(h.attention):'',h.bets?JSON.stringify(h.bets):'',h.roundScore??'',h.scoring?JSON.stringify(h.scoring.penalties):'']);
   }
   return '\ufeff' + rows.map(row=>row.map(csvCell).join(';')).join('\r\n');
+}
+
+export const dimensionLabels={Strategy:'Estrategia',Structure:'Estructura',Systems:'Sistemas','Shared Values':'Valores compartidos',Skills:'Capacidades',Style:'Estilo de liderazgo',Staff:'Personas'};
+export function roundRanking(teams,round){
+ let last=null,place=0;
+ return teams.map(t=>({id:t.id,name:t.name,decision:t.history?.find(h=>h.round===round)})).filter(t=>t.decision).sort((a,b)=>b.decision.total-a.decision.total||a.name.localeCompare(b.name)).map((t,i)=>{if(i===0||t.decision.total!==last)place=i+1;last=t.decision.total;return {...t,place};});
+}
+export function roundAnalysis(teams,round){
+ const entries=roundRanking(teams,round),n=entries.length;
+ const overloaded=entries.filter(t=>t.decision.scoring?.penalties?.overload>0).length;
+ const debt=entries.filter(t=>t.decision.debt>0).length;
+ return {entries,patterns:n?[`${n} equipos registraron su decisión.`,`${overloaded} equipos exigieron más esfuerzo del que la organización podía sostener.`,`${debt} equipos terminaron la ronda con deuda.`]:['Todavía no hay decisiones en esta ronda.'],questions:['¿Qué señal del caso les llevó a priorizar esas palancas?','¿Qué esperaban que ocurriera y qué cambió realmente en las 7S?','Si tuvieran que ejecutar menos intervenciones, ¿cuáles conservarían y por qué?','¿Qué mejora de esta ronda podrían sostener sin seguir aumentando la deuda?']};
 }

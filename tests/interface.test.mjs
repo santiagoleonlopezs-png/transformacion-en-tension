@@ -10,6 +10,7 @@ const flush=async()=>{for(let i=0;i<5;i++)await new Promise(resolve=>setImmediat
 function setup(){
  const dom=new JSDOM(html,{url:'https://example.test/transformacion-en-tension/?sala=QA-FIXTURE',runScripts:'outside-only'});
  const w=dom.window,document=w.document;let current=0,joined=false,room={...fixture.room},failDecision=false,clipboard='',lastBlob=null;
+ w.confirm=()=>true;
  const requests=[],intervals=new Map();let intervalId=0;
  w.setInterval=(fn,ms)=>{intervals.set(++intervalId,{fn,ms});return intervalId;};w.clearInterval=id=>intervals.delete(id);
  w.scrollTo=()=>{};w.HTMLElement.prototype.scrollIntoView=()=>{};
@@ -20,7 +21,7 @@ function setup(){
  let signedIn=null;const authListeners=[];
  w.testGame=game;w.testAuth={restore:async()=>signedIn,signIn:async(email,password)=>{if(password!=='valid-password')throw Error('Correo o contraseña incorrectos.');signedIn={uid:'fac-A',email};authListeners.forEach(fn=>fn(signedIn));return signedIn;},getToken:async()=>{if(!signedIn)throw Error('Inicia sesión como facilitador.');return 'test-firebase-token';},signOut:async()=>{signedIn=null;authListeners.forEach(fn=>fn(null));},observe:fn=>{authListeners.push(fn);return ()=>{};},authError:e=>e.message};
 w.GAME_CONFIG={SUPABASE_URL:'https://database.test',SUPABASE_ANON_KEY:'publishable-test-key'};
- function snapshot(){const s=structuredClone(fixture.snapshots[current]);s.deadline=new Date(Date.now()+420000).toISOString();s.server_now=new Date().toISOString();return s;}
+ function snapshot(){const s=structuredClone(fixture.snapshots[current]);s.deadline=new Date(Date.now()+420000).toISOString();s.server_now=new Date().toISOString();s.room={...room};return s;}
  w.fetch=async(url,options)=>{
   let req=JSON.parse(options.body);
   if(url.includes('/functions/v1/')){assert.equal(options.headers.Authorization,'Bearer test-firebase-token');req={p_action:req.action,p_code:req.code,p_data:req.data};}
@@ -41,8 +42,8 @@ w.GAME_CONFIG={SUPABASE_URL:'https://database.test',SUPABASE_ANON_KEY:'publishab
   }
   return {ok:true,json:async()=>data};
  };
- w.eval('const {rounds,levers,metrics,roomLink,decisionsCsv}=window.testGame;const FacAuth=window.testAuth;\n'+app);
- return {w,document,requests,intervals,joinExternal:()=>{joined=true;},clipboard:()=>clipboard,blob:()=>lastBlob,failNextDecision:()=>{failDecision=true;},close:()=>dom.window.close()};
+ w.eval('const {rounds,levers,metrics,roomLink,decisionsCsv,dimensionLabels,roundAnalysis}=window.testGame;const FacAuth=window.testAuth;\n'+app);
+ return {w,document,requests,intervals,joinExternal:()=>{joined=true;},setRoom:patch=>{Object.assign(room,patch);},clipboard:()=>clipboard,blob:()=>lastBlob,failNextDecision:()=>{failDecision=true;},close:()=>dom.window.close()};
 }
 async function submit(document,id){document.querySelector(id).dispatchEvent(new document.defaultView.Event('submit',{bubbles:true,cancelable:true}));await flush();}
 async function login(ui){const d=ui.document;await click(d,'#facilitator-btn');assert.ok(d.querySelector('#login-screen').classList.contains('active'));d.querySelector('#fac-login-email').value='test@example.test';d.querySelector('#fac-login-password').value='valid-password';await submit(d,'#fac-login-form');assert.ok(d.querySelector('#fac-screen').classList.contains('active'));}
@@ -70,6 +71,7 @@ test('complete interface: room invitation, four rounds with debt, private decisi
    d.querySelector('#reason-input').value='Alineamos procesos, estructura y liderazgo para responder al diagnóstico.';
    d.querySelector('#reason-input').dispatchEvent(new ui.w.Event('input'));
    if(round===2){assert.match(d.querySelector('#budget-preview').textContent,/deuda de 20/);assert.ok(d.querySelector('#budget-preview').classList.contains('debt-bg'));}
+   d.querySelector('[data-attention="Structure"]').value=50;d.querySelector('[data-attention="Systems"]').value=50;d.querySelector('[data-attention="Structure"]').dispatchEvent(new ui.w.Event('input'));
    if(round===1){ui.failNextDecision();await click(d,'#execute-btn');assert.match(d.querySelector('#sync-message').textContent,/aún no está confirmada/);assert.equal(d.querySelectorAll('#history .decision-card').length,0);}
    await click(d,'#execute-btn');assert.equal(d.querySelectorAll('#history .decision-card').length,round);
    if(round>=2){assert.ok(d.querySelector('#balance-pill').classList.contains('debt'));assert.equal(d.querySelector('#credits-label').textContent,String(120-round*70));}
@@ -127,5 +129,47 @@ test('facilitator entry requires login and invalid credentials never open the ro
   assert.match(d.querySelector('#login-message').textContent,/incorrectos/);
   assert.ok(d.querySelector('#login-screen').classList.contains('active'));
   assert.ok(!ui.requests.some(r=>['list','host','create'].includes(r.p_action)));
+ }finally{ui.close();}
+});
+
+
+test('eight levers stay selectable, diagnosis is mandatory and no clock auto-submits',async()=>{
+ const ui=setup(),{document:d}=ui;
+ try{
+ d.querySelector('#team-name').value='Equipo de prueba';await submit(d,'#team-form');
+ for(const lever of d.querySelectorAll('.lever'))lever.click();
+ assert.equal(d.querySelectorAll('.lever.selected').length,8);
+ assert.match(d.querySelector('#selection-label').textContent,/8 seleccionadas/);
+ d.querySelector('#reason-input').value='Si alineamos las decisiones, esperamos reducir la tensión organizacional.';
+ await click(d,'#execute-btn');assert.match(d.querySelector('#validation-msg').textContent,/100 puntos/);
+ assert.ok(!ui.requests.some(r=>r.p_action==='decide'));
+ for(const {fn,ms} of ui.intervals.values())if(ms===500)await fn();
+ assert.ok(!ui.requests.some(r=>r.p_action==='decide'),'Timer must not make a decision');
+ d.querySelector('[data-attention="Systems"]').value=100;
+ await click(d,'#execute-btn');
+ const payload=ui.requests.find(r=>r.p_action==='decide').p_data;
+ assert.equal(payload.selected.length,8);assert.equal(payload.attention.Systems,100);assert.equal(Object.keys(payload.bets).length,7);assert.equal(payload.epoch,0);
+ }finally{ui.close();}
+});
+
+test('guided room updates block and release decisions without discarding the draft',async()=>{
+ const ui=setup(),{document:d}=ui;
+ try{
+ ui.setRoom({mode:'guided',phase:'waiting',current_round:1,epoch:0});
+ d.querySelector('#team-name').value='Equipo de prueba';await submit(d,'#team-form');
+ assert.equal(d.querySelector('#execute-btn').disabled,true);
+ assert.match(d.querySelector('#room-stage').textContent,/Esperando/);
+ ui.setRoom({phase:'deciding'});
+ for(const {fn,ms} of ui.intervals.values())if(ms===4000)await fn();
+ assert.equal(d.querySelector('#execute-btn').disabled,false);
+ d.querySelector('[data-attention="Systems"]').value=100;
+ d.querySelector('[data-attention="Systems"]').dispatchEvent(new ui.w.Event('input'));
+ d.querySelector('.lever').click();d.querySelector('#reason-input').value='Nuestra hipótesis conserva el borrador al pausar la sala.';d.querySelector('#reason-input').dispatchEvent(new ui.w.Event('input'));
+ ui.setRoom({phase:'discussion'});
+ for(const {fn,ms} of ui.intervals.values())if(ms===4000)await fn();
+ assert.equal(d.querySelector('#execute-btn').disabled,true);
+ assert.equal(d.querySelector('[data-attention="Systems"]').value,'100');
+ assert.match(d.querySelector('#reason-input').value,/conserva el borrador/);
+ assert.equal(d.querySelectorAll('.lever.selected').length,1);
  }finally{ui.close();}
 });

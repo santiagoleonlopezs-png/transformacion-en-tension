@@ -14,11 +14,19 @@ Se conservan las cuatro situaciones, las siete dimensiones de McKinsey, las ocho
 
 El ingreso puede cerrarse y reabrirse; los equipos que ya entraron conservan su acceso y pueden terminar.
 
-## Presupuesto y resultado
+## Dinámica compartida con Nexus
 
-El saldo inicial es de 120 créditos para las cuatro rondas. Se permite gastar por encima del saldo disponible. Los números negativos se muestran en rojo y no bloquean las intervenciones.
+Se conservan el caso de Transformación en tensión, sus cuatro situaciones, siete dimensiones 7S, ocho palancas y 120 créditos iniciales. La interfaz usa el lenguaje visual de Nexus: fondo azul profundo, acentos azules y menta, ilustración de red, tarjetas y resultados explicados.
 
-El puntaje base conserva los pesos originales: Cultura Agile 50 %, coherencia 40 % y presupuesto disponible 10 %. El componente de presupuesto tiene un mínimo de cero. A ese resultado se resta `min(50, round(deuda × 0.4))`, con un puntaje final mínimo de cero. La vista de selección anticipa costo, saldo, deuda y penalización.
+- Diagnóstico: distribuir 100 puntos de atención en las 7S; hipótesis de 20 a 180 caracteres; objetivo y predicción por dimensión (−4 a +4).
+- Selección libre de las ocho palancas, sin límite de tres ni advertencias sobre saturación antes de decidir. Los costos y el saldo se mantienen visibles. La deuda permite continuar y aparece en rojo.
+- El resultado muestra pertinencia (40), diagnóstico (20), predicción (10), efecto (15), foco (10) y agilidad (5). Descuenta exceso de esfuerzo (hasta 45), acciones inoportunas (hasta 20) y demora (hasta 3). La agilidad solo suma si la pertinencia y el diagnóstico son suficientes. La ronda queda entre 0 y 100.
+- Ranking: promedio de las rondas evaluadas, menos `min(50, round(deuda × 0.4))`, con mínimo cero. Las partidas antiguas sin evaluaciones nuevas conservan su fórmula original. Las decisiones antiguas no se recalculan.
+- Cada palanca tiene un esfuerzo interno: arquitectura/procesos 3; liderazgo/talento/cambio 2; estrategia/cultura/espacio 1. La capacidad depende de Personas y Capacidades. El resultado explica el exceso en lenguaje cotidiano después de decidir.
+- Modalidad dirigida: sala en espera, abrir/reabrir una ronda y cerrar para conversar. Reabrir conserva respuestas confirmadas y habilita a los equipos pendientes. El tiempo de conversación se excluye y reabrir no borra el tiempo de decisión acumulado.
+- Modalidad autónoma: cada equipo avanza a su ritmo. No hay envío automático ni cierre por tiempo.
+- El facilitador ve ranking por ronda, patrones y preguntas de reflexión; puede retirar equipos o reiniciar la sala con confirmación. El reinicio archiva equipos e historiales, invalida su acceso operativo y permite nuevos ingresos; no borra los datos archivados.
+- Evolución gráfica de las 7S, feedback por decisión, ranking de resultados, enlace/QR e informe CSV. Las decisiones de otros equipos siguen siendo privadas.
 
 ## Datos y acceso
 
@@ -32,7 +40,7 @@ El puntaje base conserva los pesos originales: Cultura Agile 50 %, coherencia 40
 - Se retiraron `create`, `host` y `status` de la RPC pública de participantes. Ni una clave de sala ni una sesión corriente de Supabase pueden abrir el panel del facilitador. El listado de salas se filtra por propietario en el servidor.
 - Las funciones privilegiadas permanecen en un esquema privado, con `search_path` vacío y permisos limitados. Las envolturas públicas usan `SECURITY INVOKER`.
 - El servidor aplica los costos, efectos y puntuación; no acepta puntajes ni historiales enviados por el cliente. Registra fecha, justificación, palancas, consecuencias, deuda y diagnóstico antes/después.
-- Cada decisión es idempotente y usa bloqueo de fila. El servidor conserva el plazo de la ronda para evitar que recargar reponga el tiempo. Los borradores se conservan localmente hasta que el servidor confirma el guardado.
+- Cada decisión es idempotente y usa bloqueo de fila. El servidor acumula el tiempo de decisión y excluye las pausas de conversación; recargar no repone el tiempo. Los borradores se conservan localmente hasta que el servidor confirma el guardado.
 - El ranking público devuelve resultados y nombres de equipos, sin justificaciones, claves ni diagnósticos privados.
 - Los registros anteriores en `public.game_results` se conservaron sin modificaciones. Las nuevas salas usan el esquema privado; el historial anterior no se reasigna a nuevos propietarios.
 
@@ -43,7 +51,7 @@ npm ci
 npm test
 ```
 
-`database/verify.sql` debe ejecutarse dentro de `BEGIN; … ROLLBACK;` para verificar la base real sin conservar equipos ni salas de prueba. Cubre deuda, cuatro rondas, reintentos, privacidad, cierre/reapertura, recuperación y tiempo agotado.
+`database/nexus-dynamics.sql` actualiza la base existente de forma aditiva (una sola vez). `database/verify-nexus.sql` debe ejecutarse dentro de `BEGIN; … ROLLBACK;` para verificar la base real sin conservar equipos ni salas de prueba. Cubre ocho palancas, deuda, cuatro rondas, reintentos, privacidad, apertura dirigida, diagnóstico, tiempo y reinicio con archivo. `database/verify.sql` documenta la versión anterior con cierre automático y ya no representa la dinámica actual.
 
 `tests/server-fixtures.json` contiene únicamente equipos de prueba generados por el servidor en una transacción revertida. Permite contrastar el cálculo del navegador con el servidor y probar la interfaz sin escribir datos reales. Las pruebas de interfaz usan un DOM simulado. El formulario de acceso también se comprobó visualmente en un navegador real; no se usaron credenciales personales de facilitadores en las pruebas.
 
