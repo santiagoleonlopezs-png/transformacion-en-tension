@@ -1,4 +1,4 @@
-import {rounds,levers,metrics,roomLink,decisionsCsv} from './game.mjs';
+import {rounds,levers,metrics,roomLink,decisionsCsv,dimensionLabels,roundAnalysis} from './game.mjs?v=20261113-nexus';
 import * as FacAuth from './facilitator-auth.mjs';
 
 const $=selector=>document.querySelector(selector);
@@ -90,10 +90,15 @@ async function refreshHost(){
 }
 const formatDate=value=>new Date(value).toLocaleString('es-CO',{dateStyle:'short',timeStyle:'short'});
 function decisionCard(h){
-  return `<article class="decision-card"><h3>Ronda ${h.round} · ${esc(h.title)}</h3><p><strong>Palancas:</strong> ${h.levers.length?h.levers.map(esc).join(' · '):'Decidieron no intervenir'}</p><blockquote>${esc(h.reason)}</blockquote><p><strong>${esc(h.outcome.charAt(0).toUpperCase()+h.outcome.slice(1))}.</strong> ${esc(h.consequence)}</p>${h.synergies?.length?`<p>${h.synergies.map(esc).join(' ')}</p>`:''}<div class="decision-metrics"><span>Costo ${h.cost}</span><span class="${h.debt?'debt':''}">Saldo ${h.creditsLeft}${h.debt?` · Deuda ${h.debt}`:''}</span><span>Penalización −${h.penalty}</span><span>Agile ${h.agile} (${h.deltaAgile>0?'+':''}${h.deltaAgile})</span><span>Coherencia ${h.coherence}% (${h.deltaCoherence>0?'+':''}${h.deltaCoherence})</span><span>Puntaje ${h.total}/100</span></div><div class="decision-date">${esc(formatDate(h.at))}${h.timedOut?' · Tiempo agotado':''}</div></article>`;
+  return `<article class="decision-card"><h3>Ronda ${h.round} · ${esc(h.title)}</h3><p><strong>Palancas:</strong> ${h.levers.length?h.levers.map(esc).join(' · '):'Decidieron no intervenir'}</p><blockquote>${esc(h.reason)}</blockquote><p><strong>${esc(h.outcome.charAt(0).toUpperCase()+h.outcome.slice(1))}.</strong> ${esc(h.consequence)}</p>${h.synergies?.length?`<p>${h.synergies.map(esc).join(' ')}</p>`:''}<div class="decision-metrics"><span>Costo ${h.cost}</span><span class="${h.debt?'debt':''}">Saldo ${h.creditsLeft}${h.debt?` · Deuda ${h.debt}`:''}</span><span>Penalización −${h.penalty}</span><span>Agile ${h.agile} (${h.deltaAgile>0?'+':''}${h.deltaAgile})</span><span>Coherencia ${h.coherence}% (${h.deltaCoherence>0?'+':''}${h.deltaCoherence})</span><span>Puntaje ${h.total}/100</span></div><div class="decision-date">${esc(formatDate(h.at))}${h.timedOut?' · Tiempo agotado':''}</div>${scoringHtml(h)}</article>`;
 }
 function renderHost(){
   const {room,teams}=state.hostData;
+ $('#host-phase').textContent=`${room.mode==='guided'?'Dirigida':'Autónoma'} · Ronda ${room.current_round||1} · ${{waiting:'En espera',deciding:'Decisiones abiertas',discussion:'Conversación'}[room.phase]||'En curso'}`;
+ $('#open-round').disabled=room.mode!=='guided';$('#close-round').disabled=room.mode!=='guided';
+ const selectedRound=Number($('#control-round').value)||room.current_round||1,analysis=roundAnalysis(teams,selectedRound);
+ $('#host-round-analysis').innerHTML=`<h3>Ranking · Ronda ${selectedRound}</h3>${analysis.entries.length?`<ol>${analysis.entries.map(t=>`<li value="${t.place}">${esc(t.name)} · <strong>${t.decision.total}/100</strong></li>`).join('')}</ol>`:'<p class="hint">Sin decisiones confirmadas.</p>'}${analysis.patterns.map(x=>`<p class="hint">${esc(x)}</p>`).join('')}<h3>Preguntas para conversar</h3><ul>${analysis.questions.map(q=>`<li>${esc(q)}</li>`).join('')}</ul>`;
+
   $('#host-status').textContent=`Ingreso ${room.status==='open'?'abierto':'cerrado'} · Actualización automática cada 4 segundos.`;
   $('#toggle-room').textContent=room.status==='open'?'Cerrar ingreso':'Reabrir ingreso';
   $('#host-team-count').textContent=teams.length;
@@ -105,19 +110,42 @@ function renderHost(){
   const opened=new Set([...document.querySelectorAll('.host-team[open]')].map(el=>el.dataset.id));
   const round=Number($('#round-filter').value),selected=filter.value;
   const visible=teams.filter(t=>(!selected||t.id===selected)&&(!round||t.history.some(h=>h.round===round)));
-  $('#host-teams').innerHTML=visible.length?visible.map(t=>`<details class="host-team" data-id="${t.id}" ${opened.has(t.id)||selected?'open':''}><summary><h3>${esc(t.name)}</h3><span class="team-meta"><strong>${t.metrics.total}/100</strong><span class="${t.credits<0?'debt':''}">Saldo ${t.credits}${t.credits<0?` · Deuda ${-t.credits}`:''}</span><span>${t.finished?'Finalizado':`Ronda ${t.round}/4`}</span><span>${t.history.length} decisiones ▾</span></span></summary>${t.history.length?t.history.filter(h=>!round||h.round===round).map(decisionCard).join(''):'<p class="hint">El equipo ya entró. Aún no ha ejecutado una decisión.</p>'}</details>`).join(''):`<p class="empty">${teams.length?'No hay decisiones para este filtro.':'Comparte la sala. Los equipos aparecerán aquí al ingresar.'}</p>`;
+  $('#host-teams').innerHTML=visible.length?visible.map(t=>`<details class="host-team" data-id="${t.id}" ${opened.has(t.id)||selected?'open':''}><summary><h3>${esc(t.name)}</h3><span class="team-meta"><strong>${t.metrics.total}/100</strong><span class="${t.credits<0?'debt':''}">Saldo ${t.credits}${t.credits<0?` · Deuda ${-t.credits}`:''}</span><span>${t.finished?'Finalizado':`Ronda ${t.round}/4`}</span><span>${t.history.length} decisiones ▾</span></span></summary><button class="secondary danger remove-team" type="button" data-team="${t.id}">Retirar equipo</button>${t.history.length?t.history.filter(h=>!round||h.round===round).map(decisionCard).join(''):'<p class="hint">El equipo ya entró. Aún no ha ejecutado una decisión.</p>'}</details>`).join(''):`<p class="empty">${teams.length?'No hay decisiones para este filtro.':'Comparte la sala. Los equipos aparecerán aquí al ingresar.'}</p>`;
 }
 function draftKey(){return `${state.team.id}:${state.team.round}`;}
-function saveDraft(){if(!state.team||state.team.resolved)return;local.drafts[draftKey()]={selected:state.selected,reason:$('#reason-input').value};try{persist();}catch(e){$('#sync-message').textContent=e.message;}}
+function saveDraft(){if(!state.team||state.team.resolved)return;local.drafts[draftKey()]={selected:state.selected,reason:$('#reason-input').value,attention:inputValues('attention'),bets:inputValues('prediction'),target:$('#target-input').value};try{persist();}catch(e){$('#sync-message').textContent=e.message;}}
+function inputValues(kind){return Object.fromEntries([...document.querySelectorAll(`[data-${kind}]`)].map(el=>[el.dataset[kind],Number(el.value)]));}
+function canDecide(t=state.team){return !t.resolved&&(t.room?.mode!=='guided'||(t.room.phase==='deciding'&&t.round<=t.room.current_round));}
+function renderDecisionInputs(){
+ const t=state.team,draft=local.drafts[draftKey()]||{},prior=t.resolved?t.history.at(-1):null,locked=!canDecide();
+ for(const [kind,selector,min,max] of [['attention','#attention-inputs',0,100],['prediction','#prediction-inputs',-4,4]]){
+ const values=(kind==='attention'?(prior?.attention||draft.attention):(prior?.bets||draft.bets))||{};
+ $(selector).innerHTML=Object.entries(dimensionLabels).map(([k,label])=>`<label class="dimension-input"><span>${label}</span><input type="number" data-${kind}="${k}" aria-label="${kind==='attention'?'Atención':'Predicción'}: ${label}" min="${min}" max="${max}" step="1" value="${Number(values[k])||0}" ${locked?'disabled':''}></label>`).join('');
+ $(selector).querySelectorAll('input').forEach(el=>el.oninput=()=>{updateAttention();saveDraft();});
+ }
+ $('#target-input').innerHTML=Object.entries(dimensionLabels).map(([k,label])=>`<option value="${k}">${label}</option>`).join('');
+ $('#target-input').value=prior?.target||draft.target||'Strategy';$('#target-input').disabled=locked;$('#target-input').onchange=saveDraft;updateAttention();
+}
+function updateAttention(){const sum=Object.values(inputValues('attention')).reduce((a,b)=>a+b,0);$('#attention-sum').textContent=`Atención asignada: ${sum}/100`;}
+function scoringHtml(h){
+ if(!h?.scoring)return '';
+ const labels={relevance:'Pertinencia',diagnosis:'Diagnóstico',forecast:'Predicción',impact:'Efecto en el sistema',focus:'Foco',speed:'Agilidad'},s=h.scoring;
+ return `<p>Esta ronda: <strong>${h.roundScore}/100</strong> · Ranking: promedio de tus rondas, menos ${h.penalty} puntos por deuda = <strong>${h.total}/100</strong>.</p><div class="score-breakdown">${Object.entries(s.points).map(([k,v])=>`<div><span>${labels[k]}</span><strong>+${v}</strong></div>`).join('')}${Object.entries(s.penalties).map(([k,v])=>`<div class="${v?'debt':''}"><span>${({overload:'Demasiadas acciones a la vez',wrong:'Acciones inoportunas',delay:'Demora al decidir'})[k]}</span><strong>−${v}</strong></div>`).join('')}</div><p class="feedback-note">${s.penalties.overload?'Las acciones exigieron más trabajo del que la organización podía sostener. Para la próxima, prioriza las que mejor respondan al problema.':'El esfuerzo de las acciones estuvo dentro de lo que la organización podía asumir.'} ${s.points.speed?'La rapidez sumó porque estuvo acompañada de pertinencia y un diagnóstico alineado.':'La rapidez solo suma cuando la decisión responde a las señales del caso.'}</p>`;
+}
+function evolutionHtml(t){
+ const series=[{label:'Inicio',scores:t.history[0]?.scoresBefore||t.scores},...t.history.map(h=>({label:'R'+h.round,scores:h.scoresAfter}))],colors=['#81e1c9','#77a6ff','#d2b5ff','#f2ca85','#e58ca4','#6dd2ef','#a6d69b'];
+ const paths=Object.keys(dimensionLabels).map((k,i)=>`<polyline fill="none" stroke="${colors[i]}" stroke-width="2.4" points="${series.map((v,j)=>`${40+j*120},${180-(Number(v.scores?.[k])||1)*30}`).join(' ')}"/>${series.map((v,j)=>`<circle cx="${40+j*120}" cy="${180-(Number(v.scores?.[k])||1)*30}" r="3" fill="${colors[i]}"/>`).join('')}`).join('');
+ return `<svg viewBox="0 0 560 215" role="img" aria-label="Evolución de las siete dimensiones, de 1 a 5">${[1,2,3,4,5].map(v=>`<line x1="32" y1="${180-v*30}" x2="535" y2="${180-v*30}" stroke="#293c58"/><text x="12" y="${184-v*30}" fill="#a5b6d0" font-size="11">${v}</text>`).join('')}${paths}${series.map((v,j)=>`<text x="${32+j*120}" y="190" fill="#a5b6d0" font-size="11">${v.label}</text>`).join('')}</svg><div class="chart-legend">${Object.entries(dimensionLabels).map(([k,label],i)=>`<span style="--dot:${colors[i]}">${label}</span>`).join('')}</div>`;
+}
 function applyTeam(team,restoreDraft=false){
   state.team=team;state.offset=team.server_now?Date.parse(team.server_now)-Date.now():0;
-  state.selected=[];
-  if(restoreDraft&&!team.resolved){const draft=local.drafts[draftKey()];if(draft){state.selected=draft.selected.filter(id=>levers.some(l=>l.id===id)).slice(0,3);$('#reason-input').value=String(draft.reason||'').slice(0,180);}else $('#reason-input').value='';}
+  state.selected=team.resolved?(team.history.at(-1)?.leverIds||[]):[];
+  if(restoreDraft&&!team.resolved){const draft=local.drafts[draftKey()];if(draft){state.selected=draft.selected.filter(id=>levers.some(l=>l.id===id));$('#reason-input').value=String(draft.reason||'').slice(0,180);}else $('#reason-input').value='';}
   else $('#reason-input').value=team.resolved?(team.history.at(-1)?.reason||''):'';
   if(team.resolved){delete local.drafts[draftKey()];try{persist();}catch{}}
 }
 function renderGame(){
-  const t=state.team,r=rounds[t.round-1],m=t.metrics;
+  const t=state.team,r=rounds[t.round-1],m=t.metrics;renderDecisionInputs();$('#evolution-chart').innerHTML=evolutionHtml(t);$('#room-stage').textContent=t.room?.mode==='guided'?`Ronda ${t.room.current_round} · ${t.room.phase==='deciding'?'Decisiones abiertas':t.room.phase==='discussion'?'Conversación con tu facilitador':'Esperando al facilitador'}`:'Modalidad autónoma · Avanza a tu ritmo';
   $('#team-label').textContent=t.name;$('#team-room').textContent=t.room_code;
   $('#round-title').textContent=r.title;$('#round-label').textContent=t.round;$('#credits-label').textContent=t.credits;
   $('#balance-pill').classList.toggle('debt',t.credits<0);$('#balance-pill').classList.toggle('debt-bg',t.credits<0);
@@ -129,41 +157,41 @@ function renderGame(){
   $('#agile-badge').textContent=`Agile ${m.agile}/100`;$('#coherence-label').textContent=`${m.coherence}%`;$('#coherence-bar').style.width=`${m.coherence}%`;
   $('#history').innerHTML=t.history.length?t.history.map(decisionCard).join(''):'<p class="hint">Aquí verás las consecuencias de tus decisiones.</p>';
   $('#round-board').innerHTML=t.history.length?`<table><thead><tr><th>Ronda</th><th>Agile</th><th>Coherencia</th><th>Saldo</th><th>Deuda</th><th>Puntaje</th></tr></thead><tbody>${t.history.map(h=>`<tr><td>${h.round}</td><td>${h.agile}</td><td>${h.coherence}%</td><td class="${h.debt?'debt':''}">${h.creditsLeft}</td><td>${h.debt}</td><td>${h.total}</td></tr>`).join('')}</tbody></table>`:'';
-  $('#reason-input').disabled=t.resolved;$('#reason-count').textContent=`${$('#reason-input').value.length}/180`;$('#execute-btn').disabled=t.resolved||state.busy;
-  $('#round-footer').classList.toggle('hidden',!t.resolved);
+  $('#reason-input').disabled=!canDecide();$('#reason-count').textContent=`${$('#reason-input').value.length}/180`;$('#execute-btn').disabled=!canDecide()||state.busy;
+  $('#round-footer').classList.toggle('hidden',!t.resolved);$('#next-btn').disabled=t.room?.mode==='guided'&&t.round<4&&(t.room.phase!=='deciding'||t.room.current_round<=t.round);$('#score-breakdown').innerHTML=t.resolved?scoringHtml(t.history.at(-1)):'';
   if(t.resolved){const h=t.history.at(-1);$('#footer-result-title').textContent=h.timedOut?'Tiempo agotado':`Decisión ${h.outcome}`;$('#footer-result-text').textContent=`${h.consequence} ${h.synergies.join(' ')} Agile ${h.agile}/100 · Coherencia ${h.coherence}% · Saldo ${h.creditsLeft}${h.debt?` · Deuda ${h.debt} · Penalización −${h.penalty} puntos`:''}.`;$('#next-btn').textContent=t.round<4?`Continuar a la ronda ${t.round+1}`:'Ver resultado final';}
   renderLevers();tick();
 }
 function renderLevers(){
   const t=state.team,box=$('#levers-grid');box.replaceChildren();
-  for(const l of levers){const selected=state.selected.includes(l.id),button=document.createElement('button');button.type='button';button.className=`lever${selected?' selected':''}`;button.setAttribute('aria-pressed',String(selected));button.disabled=t.resolved||state.busy;button.innerHTML=`<strong>${esc(l.name)}</strong><span class="lever-cost">${l.cost} cr.</span><p>${esc(l.desc)}</p>`;button.onclick=()=>{if(state.busy||t.resolved)return;const index=state.selected.indexOf(l.id);if(index>=0)state.selected.splice(index,1);else if(state.selected.length<3)state.selected.push(l.id);else{$('#validation-msg').textContent='Puedes elegir máximo tres palancas.';return;}$('#validation-msg').textContent='';renderLevers();saveDraft();};box.append(button);}
-  $('#selection-label').textContent=`${state.selected.length}/3`;
-  const cost=state.selected.reduce((sum,id)=>sum+levers.find(l=>l.id===id).cost,0),balance=t.credits-cost,forecast=metrics(t.scores,balance);
+  for(const l of levers){const selected=state.selected.includes(l.id),button=document.createElement('button');button.type='button';button.className=`lever${selected?' selected':''}`;button.setAttribute('aria-pressed',String(selected));button.disabled=!canDecide()||state.busy;button.innerHTML=`<strong>${esc(l.name)}</strong><span class="lever-cost">${l.cost} cr.</span><p>${esc(l.desc)}</p>`;button.onclick=()=>{if(state.busy||!canDecide())return;const index=state.selected.indexOf(l.id);if(index>=0)state.selected.splice(index,1);else state.selected.push(l.id);$('#validation-msg').textContent='';renderLevers();saveDraft();};box.append(button);}
+  $('#selection-label').textContent=`${state.selected.length} seleccionadas`;
+  const cost=t.resolved?0:state.selected.reduce((sum,id)=>sum+levers.find(l=>l.id===id).cost,0),balance=t.credits-cost,forecast=metrics(t.scores,balance);
   $('#budget-preview').classList.toggle('debt-bg',balance<0);
-  $('#budget-preview').innerHTML=`<div><span>Costo de esta decisión</span><strong>${cost} cr.</strong></div><div><span>Saldo ${t.resolved?'actual':'previsto'}</span><strong class="${balance<0?'debt':''}">${balance} cr.</strong></div><p>${balance<0?`Continúas con una deuda de ${forecast.debt} créditos. Su penalización será de ${forecast.penalty} puntos en el ranking.`:'El presupuesto es único para las cuatro rondas.'}</p>`;
+  $('#budget-preview').innerHTML=`<div><span>Costo de esta decisión</span><strong>${cost} cr.</strong></div><div><span>Saldo ${t.resolved?'actual':'previsto'}</span><strong class="${balance<0?'debt':''}">${balance} cr.</strong></div><p>${balance<0?`Continúas con una deuda de ${forecast.debt} créditos. La experiencia continúa.`:'El presupuesto es único para las cuatro rondas.'}</p>`;
 }
 function tick(){
   if(state.screen!=='game-screen'||!state.team)return;
-  const t=state.team,remaining=t.resolved?0:Math.max(0,Math.ceil((Date.parse(t.deadline)-Date.now()-state.offset)/1000));
-  $('#timer-label').textContent=t.resolved?'Ronda cerrada':`${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}`;
-  $('#timer-pill').classList.toggle('urgent',!t.resolved&&remaining<=60);
-  if(remaining===0&&!t.resolved&&!state.busy&&navigator.onLine&&Date.now()>(state.retryAfter||0))executeDecision(true);
+  const t=state.team,elapsed=Math.max(0,Math.floor((Number(t.decision_elapsed)||0)+(t.decision_started? (Date.now()+state.offset-Date.parse(t.decision_started))/1000 : t.room?.phase==='discussion'?0:(Date.now()+state.offset-(Date.parse(t.deadline)-420000))/1000))),remaining=elapsed;
+  $('#timer-label').textContent=t.resolved?'Decisión guardada':t.room?.mode==='guided'&&t.room.phase!=='deciding'?'En pausa':`${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}`;
+  $('#timer-pill').classList.toggle('urgent',false);
+  // El tiempo no guarda decisiones ni cierra automáticamente la ronda.
 }
 async function executeDecision(timedOut=false){
-  if(state.busy||state.team.resolved)return;
-  const reason=$('#reason-input').value.trim();
+  if(state.busy||!canDecide())return;
+  const reason=$('#reason-input').value.trim(),attention=inputValues('attention'),bets=inputValues('prediction'),target=$('#target-input').value;if(Object.values(attention).reduce((a,b)=>a+b,0)!==100){$('#validation-msg').textContent='Distribuye exactamente 100 puntos de atención.';return;}
   if(!timedOut&&reason.length<20){$('#validation-msg').textContent='Justifica tu decisión con al menos 20 caracteres.';$('#reason-input').focus();return;}
   state.busy=true;setBusy($('#execute-btn'),true);renderLevers();$('#validation-msg').textContent='Guardando decisión…';
   try{
-    const t=await api('decide',state.team.room_code,state.credential.key,{id:state.team.id,round:state.team.round,selected:state.selected,reason});
+    const t=await api('decide',state.team.room_code,state.credential.key,{id:state.team.id,round:state.team.round,selected:state.selected,reason,attention,bets,target,epoch:state.team.room?.epoch||0});
     applyTeam(t);$('#validation-msg').textContent='Decisión guardada.';$('#sync-message').textContent='Tu decisión y sus consecuencias quedaron guardadas.';$('#sync-message').classList.remove('error');
     renderGame();await loadLeaderboard();$('#round-footer').scrollIntoView({behavior:'smooth',block:'center'});
   }catch(e){state.retryAfter=Date.now()+10000;$('#validation-msg').textContent=e.message;$('#sync-message').textContent='La decisión aún no está confirmada. Puedes volver a intentarlo.';$('#sync-message').classList.add('error');}
-  finally{state.busy=false;$('#execute-btn').disabled=state.team.resolved;renderLevers();}
+  finally{state.busy=false;$('#execute-btn').disabled=!canDecide();renderLevers();}
 }
 async function nextRound(){
   if(state.busy)return;state.busy=true;setBusy($('#next-btn'),true);
-  try{const t=await api('next',state.team.room_code,state.credential.key,{id:state.team.id,round:state.team.round});applyTeam(t,true);$('#validation-msg').textContent='';if(t.finished){renderFinish();show('finish-screen');}else{renderGame();window.scrollTo({top:0,behavior:'smooth'});}}
+  try{const t=await api('next',state.team.room_code,state.credential.key,{id:state.team.id,round:state.team.round,epoch:state.team.room?.epoch||0});applyTeam(t,true);$('#validation-msg').textContent='';if(t.finished){renderFinish();show('finish-screen');}else{renderGame();window.scrollTo({top:0,behavior:'smooth'});}}
   catch(e){$('#validation-msg').textContent=e.message;$('#sync-message').textContent=e.message;$('#sync-message').classList.add('error');}
   finally{state.busy=false;setBusy($('#next-btn'),false);if(!state.team.finished)renderGame();}
 }
@@ -171,10 +199,10 @@ function renderFinish(){
   const t=state.team,m=t.metrics;
   $('#finish-title').textContent=m.total>=80?'Transformación sobresaliente':m.total>=65?'Transformación sólida':m.total>=50?'Transformación parcial':'Transformación frágil';
   $('#final-score').textContent=m.total;$('#final-agile').textContent=`${m.agile}/100`;$('#final-coherence').textContent=`${m.coherence}%`;$('#final-credits').textContent=t.credits;$('#final-credits').classList.toggle('debt',t.credits<0);$('#final-penalty').textContent=`−${m.penalty} puntos`;$('#final-penalty').classList.toggle('debt',m.penalty>0);
-  $('#finish-copy').textContent=`El puntaje combina Cultura Agile (50 %), coherencia del sistema (40 %) y presupuesto disponible (10 %).${m.debt?` La deuda de ${m.debt} créditos restó ${m.penalty} puntos.`:' Administraron la transformación sin deuda.'} Las decisiones también se valoran por su pertinencia y sus sinergias.`;
+  $('#finish-copy').textContent=t.history.some(h=>h.scoring)?'El ranking es el promedio de las rondas evaluadas menos la penalización por deuda. Cada decisión combina pertinencia, diagnóstico, predicción, efecto, foco y agilidad; descuenta acciones inoportunas y exceso de esfuerzo.':'Esta partida conserva la puntuación de su versión original.';
   $('#finish-history').innerHTML=t.history.map(decisionCard).join('');
 }
-function rankingRows(teams){return teams.map((t,i)=>`<tr class="${t.id===state.team?.id?'me':''}"><td>${i+1}</td><td>${esc(t.name)}${t.id===state.team?.id?' · Tú':''}</td><td><strong>${t.metrics.total}</strong>${t.metrics.penalty?` <span class="debt" title="Penalización por deuda">(−${t.metrics.penalty})</span>`:''}</td><td>${t.metrics.agile}</td><td>${t.metrics.coherence}%</td><td class="${t.credits<0?'debt':''}">${t.credits}${t.credits<0?` / ${-t.credits} deuda`:''}</td><td><span class="status-badge ${t.finished?'status-finished':''}">${t.finished?'Finalizado':`Ronda ${t.round}`}</span></td></tr>`).join('');}
+function rankingRows(teams){return teams.map((t,i)=>`<tr class="${t.id===state.team?.id?'me':''}"><td>${i<3?['🥇','🥈','🥉'][i]:i+1}</td><td>${esc(t.name)}${t.id===state.team?.id?' · Tú':''}</td><td><strong>${t.metrics.total}</strong>${t.metrics.penalty?` <span class="debt" title="Penalización por deuda">(−${t.metrics.penalty})</span>`:''}</td><td>${t.metrics.agile}</td><td>${t.metrics.coherence}%</td><td class="${t.credits<0?'debt':''}">${t.credits}${t.credits<0?` / ${-t.credits} deuda`:''}</td><td><span class="status-badge ${t.finished?'status-finished':''}">${t.finished?'Finalizado':`Ronda ${t.round}`}</span></td></tr>`).join('');}
 async function loadLeaderboard(){
   const code=state.team.room_code,teams=await api('leaderboard',code);
   if(state.team.room_code!==code)return;
@@ -188,7 +216,7 @@ async function refreshGame(){
   try{
     const t=await api('team',state.team.room_code,state.credential.key,{id:state.team.id});
     if(!['game-screen','finish-screen'].includes(state.screen))return;
-    if(Date.parse(t.updated_at)>Date.parse(state.team.updated_at)){applyTeam(t,true);if(t.finished){renderFinish();if(state.screen!=='finish-screen')show('finish-screen');}else renderGame();}
+    if(Date.parse(t.updated_at)>Date.parse(state.team.updated_at)||JSON.stringify(t.room)!==JSON.stringify(state.team.room)){applyTeam(t,true);if(t.finished){renderFinish();if(state.screen!=='finish-screen')show('finish-screen');}else renderGame();}
     await loadLeaderboard();$('#sync-message').textContent='Progreso guardado · Puedes retomar desde este navegador.';$('#sync-message').classList.remove('error');
   }catch(e){$('#sync-message').textContent=`No se pudo actualizar. ${e.message}`;$('#sync-message').classList.add('error');$('#live-status').textContent='No se pudo actualizar el ranking. Mostramos la última información disponible.';$('#final-live-status').textContent=$('#live-status').textContent;}
   finally{state.refreshing=false;}
@@ -210,7 +238,7 @@ $('#back-rooms').onclick=async()=>{try{await loadRooms();show('fac-screen');}cat
 $('#room-form').onsubmit=async event=>{
   event.preventDefault();const code=normalizeCode($('#new-code').value),title=$('#room-title').value.trim(),button=$('#create-room-btn');
   if(!validCode(code))return;setBusy(button,true);$('#create-message').textContent='Creando sala…';
-  try{const room=await facApi('create',code,{title});await openHost(room);$('#create-message').textContent='';}
+  try{const room=await facApi('create',code,{title,mode:$('#room-mode').value});await openHost(room);$('#create-message').textContent='';}
   catch(error){$('#create-message').textContent=error.message;}finally{setBusy(button,false);}
 };
 $('#recover-form').onsubmit=async event=>{event.preventDefault();const button=event.submitter;setBusy(button,true);try{const room=await facApi('claim',normalizeCode($('#recover-code').value),{key:$('#recover-key').value.trim()});$('#recover-key').value='';await loadRooms();await openHost(room);$('#recover-message').textContent='';}catch(error){$('#recover-message').textContent=error.message;}finally{setBusy(button,false);}};
@@ -226,7 +254,7 @@ $('#team-form').onsubmit=async event=>{
 };
 $('#execute-btn').onclick=()=>executeDecision(false);$('#next-btn').onclick=nextRound;
 $('#reason-input').oninput=event=>{$('#reason-count').textContent=`${event.target.value.length}/180`;$('#validation-msg').textContent='';saveDraft();};
-$('#team-filter').onchange=renderHost;$('#round-filter').onchange=renderHost;
+$('#team-filter').onchange=renderHost;$('#round-filter').onchange=renderHost;$('#control-round').onchange=renderHost;
 $('#host-refresh').onclick=refreshHost;
 $('#toggle-room').onclick=async()=>{const button=$('#toggle-room');setBusy(button,true);try{state.hostData=await facApi('status',state.host.code,{status:state.hostData.room.status==='open'?'closed':'open'});renderHost();}catch(e){$('#host-status').textContent=e.message;}finally{setBusy(button,false);}};
 $('#copy-invite').onclick=async()=>{try{await copy(invite());$('#share-message').textContent='Invitación copiada con el código y el enlace directo.';}catch(e){$('#share-message').textContent=e.message;$('#share-link').select();}};
@@ -242,3 +270,13 @@ window.addEventListener('online',()=>{state.retryAfter=0;if(state.screen==='host
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(state.screen==='host-screen')refreshHost();else{refreshGame();tick();}}});
 
 try{FacAuth.observe(user=>{if(state.facilitator&&(!user||user.uid!==state.facilitator.uid)){clearFacilitator();if(['fac-screen','host-screen'].includes(state.screen)){show('login-screen');$('#login-message').textContent='Tu sesión cambió. Inicia sesión para continuar.';}}});}catch{/* Login reports a loading error when requested; participant access remains available. */}
+
+$('#go-player').onclick=()=>{$('#team-form').scrollIntoView({behavior:'smooth',block:'center'});$('#class-code').focus({preventScroll:true});};
+$('#refresh-ranking').onclick=()=>loadLeaderboard().catch(e=>{$('#live-status').textContent=e.message;});
+async function controlRoom(action,data={}){if(state.controlBusy)return;state.controlBusy=true;const code=state.host.code;try{state.hostData=await facApi(action,code,data);renderHost();}catch(e){$('#host-status').textContent=e.message;}finally{state.controlBusy=false;}}
+$('#open-round').onclick=()=>controlRoom('control',{round:Number($('#control-round').value),phase:'deciding'});
+$('#close-round').onclick=()=>controlRoom('control',{round:Number($('#control-round').value),phase:'discussion'});
+$('#reset-room').onclick=()=>{if(confirm('¿Reiniciar esta sala? Los equipos deberán volver a entrar. El historial anterior se conservará archivado.'))controlRoom('reset');};
+$('#host-teams').onclick=e=>{const button=e.target.closest('[data-team]');if(button&&confirm('¿Retirar este equipo de la sala y del ranking?'))controlRoom('remove',{id:button.dataset.team});};
+
+$('#leave-team').onclick=()=>{saveDraft();show('start-screen');};

@@ -1,5 +1,5 @@
 import {AccessError,verifyFacilitator} from './auth.mjs';
-const actions=new Set(['list','create','host','status','claim']);
+const actions=new Set(['list','create','host','status','claim','control','remove','reset']);
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info','Access-Control-Allow-Methods':'POST, OPTIONS','Cache-Control':'no-store'};
 const response=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{...cors,'Content-Type':'application/json; charset=utf-8'}});
 export async function handleRequest(request,{databaseUrl,serviceKey,verify=verifyFacilitator,fetcher=fetch}={}){
