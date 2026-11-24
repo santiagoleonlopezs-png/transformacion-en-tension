@@ -1,4 +1,4 @@
-import {rounds,levers,metrics,roomLink,decisionsCsv} from './game.mjs';
+import {rounds,levers,metrics,roomLink,decisionsCsv,episodes,creditPlan,roundDebrief} from './game.mjs?v=20261123-tension';
 import * as FacAuth from './facilitator-auth.mjs';
 
 const $=selector=>document.querySelector(selector);
@@ -39,7 +39,7 @@ async function facApi(action,code=null,data={}){
 }
 function clearFacilitator(){
   state.authEpoch++;state.facilitator=null;state.rooms=[];state.host=null;state.hostData=null;
-  $('#saved-rooms').replaceChildren();$('#host-teams').replaceChildren();$('#share-link').value='';$('#room-qr').replaceChildren();$('#fac-email').textContent='';
+  $('#saved-rooms').replaceChildren();$('#host-teams').replaceChildren();$('#host-live-body').replaceChildren();$('#host-discussion').replaceChildren();$('#share-link').value='';$('#room-qr').replaceChildren();$('#fac-email').textContent='';
 }
 async function loadRooms(){state.rooms=await facApi('list');renderSavedRooms();}
 async function enterFacilitator(){
@@ -89,8 +89,9 @@ async function refreshHost(){
   finally{state.refreshing=false;}
 }
 const formatDate=value=>new Date(value).toLocaleString('es-CO',{dateStyle:'short',timeStyle:'short'});
+function debriefHtml(h){const d=roundDebrief(h);return `<div class="impact-story"><strong>Lo que sucede con las personas</strong><p>${esc(d.story)}</p></div>${d.actions.length?`<div class="action-feedback"><strong>¿Por qué funcionó o no?</strong>${d.actions.map(a=>`<p><b>${esc(a.name)}:</b> ${esc(a.text)}</p>`).join('')}</div>`:''}${d.changes.length?`<p class="hint">Cambios en las 7S: ${d.changes.map(c=>esc(c.name)+' '+(c.delta>0?'+':'')+c.delta).join(' · ')}</p>`:''}`;}
 function decisionCard(h){
-  return `<article class="decision-card"><h3>Ronda ${h.round} · ${esc(h.title)}</h3><p><strong>Palancas:</strong> ${h.levers.length?h.levers.map(esc).join(' · '):'Decidieron no intervenir'}</p><blockquote>${esc(h.reason)}</blockquote><p><strong>${esc(h.outcome.charAt(0).toUpperCase()+h.outcome.slice(1))}.</strong> ${esc(h.consequence)}</p>${h.synergies?.length?`<p>${h.synergies.map(esc).join(' ')}</p>`:''}<div class="decision-metrics"><span>Costo ${h.cost}</span><span class="${h.debt?'debt':''}">Saldo ${h.creditsLeft}${h.debt?` · Deuda ${h.debt}`:''}</span><span>Penalización −${h.penalty}</span><span>Agile ${h.agile} (${h.deltaAgile>0?'+':''}${h.deltaAgile})</span><span>Coherencia ${h.coherence}% (${h.deltaCoherence>0?'+':''}${h.deltaCoherence})</span><span>Puntaje ${h.total}/100</span></div><div class="decision-date">${esc(formatDate(h.at))}${h.timedOut?' · Tiempo agotado':''}</div></article>`;
+  return `<article class="decision-card"><h3>Ronda ${h.round} · ${esc(h.title)}</h3><p><strong>Palancas:</strong> ${h.levers.length?h.levers.map(esc).join(' · '):'Decidieron no intervenir'}</p><blockquote>${esc(h.reason)}</blockquote><p><strong>${esc(h.outcome.charAt(0).toUpperCase()+h.outcome.slice(1))}.</strong> ${esc(h.consequence)}</p>${h.synergies?.length?`<p>${h.synergies.map(esc).join(' ')}</p>`:''}${debriefHtml(h)}<div class="decision-metrics"><span>Costo ${h.cost}</span><span class="${h.debt?'debt':''}">Saldo ${h.creditsLeft}${h.debt?` · Deuda ${h.debt}`:''}</span><span>Penalización −${h.penalty}</span><span>Agile ${h.agile} (${h.deltaAgile>0?'+':''}${h.deltaAgile})</span><span>Coherencia ${h.coherence}% (${h.deltaCoherence>0?'+':''}${h.deltaCoherence})</span><span>Puntaje ${h.total}/100</span></div><div class="decision-date">${esc(formatDate(h.at))}${h.timedOut?' · Tiempo agotado':''}</div></article>`;
 }
 function renderHost(){
   const {room,teams}=state.hostData;
@@ -99,18 +100,20 @@ function renderHost(){
   $('#host-team-count').textContent=teams.length;
   $('#host-decision-count').textContent=teams.reduce((n,t)=>n+t.history.length,0);
   $('#host-debt-count').textContent=teams.filter(t=>t.credits<0).length;
+  $('#host-live-body').innerHTML=rankingRows([...teams].sort((a,b)=>b.metrics.total-a.metrics.total||a.name.localeCompare(b.name)));
   const filter=$('#team-filter'),previous=filter.value;
   const options='<option value="">Todos los equipos</option>'+teams.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
   if(filter.innerHTML!==options){filter.innerHTML=options;filter.value=teams.some(t=>t.id===previous)?previous:'';}
   const opened=new Set([...document.querySelectorAll('.host-team[open]')].map(el=>el.dataset.id));
   const round=Number($('#round-filter').value),selected=filter.value;
+  $('#host-discussion').innerHTML=(round?[episodes[round-1]]:episodes).map(e=>`<div><strong>${esc(e.headline)}</strong>${e.talk.map(q=>`<p>${esc(q)}</p>`).join('')}</div>`).join('');
   const visible=teams.filter(t=>(!selected||t.id===selected)&&(!round||t.history.some(h=>h.round===round)));
   $('#host-teams').innerHTML=visible.length?visible.map(t=>`<details class="host-team" data-id="${t.id}" ${opened.has(t.id)||selected?'open':''}><summary><h3>${esc(t.name)}</h3><span class="team-meta"><strong>${t.metrics.total}/100</strong><span class="${t.credits<0?'debt':''}">Saldo ${t.credits}${t.credits<0?` · Deuda ${-t.credits}`:''}</span><span>${t.finished?'Finalizado':`Ronda ${t.round}/4`}</span><span>${t.history.length} decisiones ▾</span></span></summary>${t.history.length?t.history.filter(h=>!round||h.round===round).map(decisionCard).join(''):'<p class="hint">El equipo ya entró. Aún no ha ejecutado una decisión.</p>'}</details>`).join(''):`<p class="empty">${teams.length?'No hay decisiones para este filtro.':'Comparte la sala. Los equipos aparecerán aquí al ingresar.'}</p>`;
 }
 function draftKey(){return `${state.team.id}:${state.team.round}`;}
 function saveDraft(){if(!state.team||state.team.resolved)return;local.drafts[draftKey()]={selected:state.selected,reason:$('#reason-input').value};try{persist();}catch(e){$('#sync-message').textContent=e.message;}}
 function applyTeam(team,restoreDraft=false){
-  state.team=team;state.offset=team.server_now?Date.parse(team.server_now)-Date.now():0;
+  state.team=team;state.loanApproved=false;state.offset=team.server_now?Date.parse(team.server_now)-Date.now():0;
   state.selected=[];
   if(restoreDraft&&!team.resolved){const draft=local.drafts[draftKey()];if(draft){state.selected=draft.selected.filter(id=>levers.some(l=>l.id===id)).slice(0,3);$('#reason-input').value=String(draft.reason||'').slice(0,180);}else $('#reason-input').value='';}
   else $('#reason-input').value=team.resolved?(team.history.at(-1)?.reason||''):'';
@@ -121,7 +124,8 @@ function renderGame(){
   $('#team-label').textContent=t.name;$('#team-room').textContent=t.room_code;
   $('#round-title').textContent=r.title;$('#round-label').textContent=t.round;$('#credits-label').textContent=t.credits;
   $('#balance-pill').classList.toggle('debt',t.credits<0);$('#balance-pill').classList.toggle('debt-bg',t.credits<0);
-  $('#situation-title').textContent=r.title;$('#situation-context').textContent=r.context;$('#situation-dilemma').textContent=r.dilemma;
+  const ep=episodes[t.round-1];$('#round-moment').textContent=ep.moment;$('#situation-title').textContent=ep.headline;$('#situation-context').textContent=ep.scene;$('#situation-dilemma').textContent=ep.question;$('#round-stake').textContent=ep.stake;$('#reason-label').textContent=ep.prompt;
+  const previous=t.history.find(h=>h.round===t.round-1);$('#carryover').textContent=previous?`Llegas de una decisión ${previous.outcome}. Agile ${previous.agile}/100 · Coherencia ${previous.coherence}% · Saldo ${previous.creditsLeft} cr.${previous.debt?' · Deuda '+previous.debt+' cr.':''}`:'Tienes 120 créditos para toda la transformación.';
   $('#signals').innerHTML=r.signals.map(s=>`<div class="signal">${esc(s)}</div>`).join('');
   $('#round-progress').innerHTML=rounds.map((_,i)=>`<div class="progress-step ${i<t.history.length?'done':i+1===t.round?'current':''}"></div>`).join('');
   const labels={'Strategy':'Estrategia','Structure':'Estructura','Systems':'Sistemas','Shared Values':'Valores compartidos','Skills':'Capacidades','Style':'Estilo de liderazgo','Staff':'Personas'};
@@ -131,16 +135,17 @@ function renderGame(){
   $('#round-board').innerHTML=t.history.length?`<table><thead><tr><th>Ronda</th><th>Agile</th><th>Coherencia</th><th>Saldo</th><th>Deuda</th><th>Puntaje</th></tr></thead><tbody>${t.history.map(h=>`<tr><td>${h.round}</td><td>${h.agile}</td><td>${h.coherence}%</td><td class="${h.debt?'debt':''}">${h.creditsLeft}</td><td>${h.debt}</td><td>${h.total}</td></tr>`).join('')}</tbody></table>`:'';
   $('#reason-input').disabled=t.resolved;$('#reason-count').textContent=`${$('#reason-input').value.length}/180`;$('#execute-btn').disabled=t.resolved||state.busy;
   $('#round-footer').classList.toggle('hidden',!t.resolved);
-  if(t.resolved){const h=t.history.at(-1);$('#footer-result-title').textContent=h.timedOut?'Tiempo agotado':`Decisión ${h.outcome}`;$('#footer-result-text').textContent=`${h.consequence} ${h.synergies.join(' ')} Agile ${h.agile}/100 · Coherencia ${h.coherence}% · Saldo ${h.creditsLeft}${h.debt?` · Deuda ${h.debt} · Penalización −${h.penalty} puntos`:''}.`;$('#next-btn').textContent=t.round<4?`Continuar a la ronda ${t.round+1}`:'Ver resultado final';}
+  if(t.resolved){const h=t.history.at(-1);$('#footer-result-title').textContent=h.timedOut?'Tiempo agotado':`Decisión ${h.outcome}`;$('#footer-result-text').textContent=`${h.consequence} ${h.synergies.join(' ')} Agile ${h.agile}/100 · Coherencia ${h.coherence}% · Saldo ${h.creditsLeft}${h.debt?` · Deuda ${h.debt} · Penalización −${h.penalty} puntos`:''}.`;$('#round-debrief').innerHTML=debriefHtml(h);$('#round-talk').textContent=episodes[t.round-1].talk[0];$('#next-btn').textContent=t.round<4?`Continuar a la ronda ${t.round+1}`:'Ver resultado final';}
   renderLevers();tick();
 }
 function renderLevers(){
   const t=state.team,box=$('#levers-grid');box.replaceChildren();
-  for(const l of levers){const selected=state.selected.includes(l.id),button=document.createElement('button');button.type='button';button.className=`lever${selected?' selected':''}`;button.setAttribute('aria-pressed',String(selected));button.disabled=t.resolved||state.busy;button.innerHTML=`<strong>${esc(l.name)}</strong><span class="lever-cost">${l.cost} cr.</span><p>${esc(l.desc)}</p>`;button.onclick=()=>{if(state.busy||t.resolved)return;const index=state.selected.indexOf(l.id);if(index>=0)state.selected.splice(index,1);else if(state.selected.length<3)state.selected.push(l.id);else{$('#validation-msg').textContent='Puedes elegir máximo tres palancas.';return;}$('#validation-msg').textContent='';renderLevers();saveDraft();};box.append(button);}
+  for(const l of levers){const selected=state.selected.includes(l.id),button=document.createElement('button');button.type='button';button.className=`lever${selected?' selected':''}`;button.setAttribute('aria-pressed',String(selected));button.disabled=t.resolved||state.busy;button.innerHTML=`<strong>${esc(l.name)}</strong><span class="lever-cost">${l.cost} cr.</span><p>${esc(l.desc)}</p>`;button.onclick=()=>{if(state.busy||t.resolved)return;const index=state.selected.indexOf(l.id);if(index>=0)state.selected.splice(index,1);else if(state.selected.length<3)state.selected.push(l.id);else{$('#validation-msg').textContent='Puedes elegir máximo tres palancas.';return;}state.loanApproved=false;$('#validation-msg').textContent='';renderLevers();saveDraft();};box.append(button);}
   $('#selection-label').textContent=`${state.selected.length}/3`;
-  const cost=state.selected.reduce((sum,id)=>sum+levers.find(l=>l.id===id).cost,0),balance=t.credits-cost,forecast=metrics(t.scores,balance);
-  $('#budget-preview').classList.toggle('debt-bg',balance<0);
-  $('#budget-preview').innerHTML=`<div><span>Costo de esta decisión</span><strong>${cost} cr.</strong></div><div><span>Saldo ${t.resolved?'actual':'previsto'}</span><strong class="${balance<0?'debt':''}">${balance} cr.</strong></div><p>${balance<0?`Continúas con una deuda de ${forecast.debt} créditos. Su penalización será de ${forecast.penalty} puntos en el ranking.`:'El presupuesto es único para las cuatro rondas.'}</p>`;
+  const p=creditPlan(t.credits,state.selected);
+  $('#budget-preview').classList.toggle('debt-bg',p.debt>0);
+  $('#budget-preview').innerHTML=`<div><span>Costo de esta decisión</span><strong>${p.cost} cr.</strong></div><div><span>Saldo ${t.resolved?'actual':'previsto'}</span><strong class="${p.debt?'debt':''}">${p.after} cr.</strong></div><p>${p.debt?`Deuda de ${p.debt} créditos · Penalización total −${p.penalty} puntos en el ranking.`:'El presupuesto es único para las cuatro rondas.'}</p>${!t.resolved&&p.loan?`<p>El Comité Financiero puede prestar ${p.loan} créditos adicionales. Esto añade ${p.extraPenalty} puntos de penalización. No necesitas salir del juego.</p><button type="button" class="${state.loanApproved?'secondary':'primary'} wide" id="loan-btn" ${state.busy?'disabled':''}>${state.loanApproved?'Financiación aceptada · Cancelar':'Solicitar '+p.loan+' créditos'}</button><p class="hint">${state.loanApproved?'El préstamo quedará registrado cuando ejecutes esta decisión.':'Solicita financiación o reduce tus intervenciones antes de ejecutar.'}</p>`:''}`;
+  const loan=$('#loan-btn');if(loan)loan.onclick=()=>{state.loanApproved=!state.loanApproved;renderLevers();};
 }
 function tick(){
   if(state.screen!=='game-screen'||!state.team)return;
@@ -151,11 +156,15 @@ function tick(){
 }
 async function executeDecision(timedOut=false){
   if(state.busy||state.team.resolved)return;
-  const reason=$('#reason-input').value.trim();
+  const plan=creditPlan(state.team.credits,state.selected);
+  if(!timedOut&&plan.loan&&!state.loanApproved){$('#validation-msg').textContent='Solicita financiación al Comité Financiero o ajusta las palancas.';return;}
+  const unfunded=timedOut&&plan.loan&&!state.loanApproved;
+  const chosen=unfunded?[]:state.selected;
+  const reason=unfunded?'Tiempo agotado sin aceptar financiación; no se ejecutaron las palancas.':$('#reason-input').value.trim();
   if(!timedOut&&reason.length<20){$('#validation-msg').textContent='Justifica tu decisión con al menos 20 caracteres.';$('#reason-input').focus();return;}
   state.busy=true;setBusy($('#execute-btn'),true);renderLevers();$('#validation-msg').textContent='Guardando decisión…';
   try{
-    const t=await api('decide',state.team.room_code,state.credential.key,{id:state.team.id,round:state.team.round,selected:state.selected,reason});
+    const t=await api('decide',state.team.room_code,state.credential.key,{id:state.team.id,round:state.team.round,selected:chosen,reason});
     applyTeam(t);$('#validation-msg').textContent='Decisión guardada.';$('#sync-message').textContent='Tu decisión y sus consecuencias quedaron guardadas.';$('#sync-message').classList.remove('error');
     renderGame();await loadLeaderboard();$('#round-footer').scrollIntoView({behavior:'smooth',block:'center'});
   }catch(e){state.retryAfter=Date.now()+10000;$('#validation-msg').textContent=e.message;$('#sync-message').textContent='La decisión aún no está confirmada. Puedes volver a intentarlo.';$('#sync-message').classList.add('error');}

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {initialScores,metrics,roomLink,decisionsCsv,levers,rounds} from '../game.mjs';
+import {initialScores,metrics,roomLink,decisionsCsv,levers,rounds,episodes,creditPlan,roundDebrief} from '../game.mjs';
 
 test('debt permits negative balances and subtracts a bounded penalty',()=>{
  const noBudget=metrics(initialScores,0),debt=metrics(initialScores,-30);
@@ -24,4 +24,18 @@ test('decision exports retain all rounds, no-decision teams, timestamps, and Exc
  assert.ok(csv.startsWith('\ufeff'));assert.match(csv,/'=HYPERLINK/);assert.match(csv,/"Equipo ""A"""/);
  assert.match(csv,/"3";"Fatiga"/);assert.match(csv,/"4";"Fatiga"/);assert.match(csv,/"25";"10"/);
  assert.match(csv,/2026-11-10T00:00:00Z/);assert.match(csv,/Sin decisiones registradas/);
+});
+
+test('financing only adds the shortfall and grows accumulated debt',()=>{
+ assert.deepEqual(creditPlan(50,['architecture','process','leadership']),{cost:70,after:-20,debt:20,loan:20,penalty:8,extraPenalty:8});
+ assert.equal(creditPlan(-20,['leadership']).loan,20);
+ assert.equal(creditPlan(-20,[]).loan,0);
+ assert.equal(creditPlan(-120,['leadership']).penalty,50);
+ assert.equal(creditPlan(120,['leadership']).loan,0);
+});
+test('four distinct narrative episodes and feedback tied to actual levers',()=>{
+ assert.equal(episodes.length,rounds.length);
+ assert.equal(new Set(episodes.map(e=>e.headline)).size,4);
+ const d=roundDebrief({round:1,outcome:'alineada',leverIds:['architecture','workspace'],scoresBefore:{Structure:2},scoresAfter:{Structure:4}});
+ assert.match(d.actions[0].text,/directamente/);assert.match(d.actions[1].text,/fricción/);assert.equal(d.changes[0].delta,2);assert.equal(d.talk.length,2);
 });

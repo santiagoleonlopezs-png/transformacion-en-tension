@@ -41,7 +41,7 @@ w.GAME_CONFIG={SUPABASE_URL:'https://database.test',SUPABASE_ANON_KEY:'publishab
   }
   return {ok:true,json:async()=>data};
  };
- w.eval('const {rounds,levers,metrics,roomLink,decisionsCsv}=window.testGame;const FacAuth=window.testAuth;\n'+app);
+ w.eval('const {rounds,levers,metrics,roomLink,decisionsCsv,episodes,creditPlan,roundDebrief}=window.testGame;const FacAuth=window.testAuth;\n'+app);
  return {w,document,requests,intervals,joinExternal:()=>{joined=true;},clipboard:()=>clipboard,blob:()=>lastBlob,failNextDecision:()=>{failDecision=true;},close:()=>dom.window.close()};
 }
 async function submit(document,id){document.querySelector(id).dispatchEvent(new document.defaultView.Event('submit',{bubbles:true,cancelable:true}));await flush();}
@@ -61,7 +61,7 @@ test('complete interface: room invitation, four rounds with debt, private decisi
   await click(d,'#copy-invite');assert.match(ui.clipboard(),/Código: QA-FIXTURE/);assert.ok(!ui.clipboard().includes('test-firebase-token'));
   await click(d,'#back-rooms');await click(d,'[data-home]');d.querySelector('#team-name').value='Equipo de prueba';await submit(d,'#team-form');
   assert.ok(d.querySelector('#game-screen').classList.contains('active'));
-  assert.equal(d.querySelector('#credits-label').textContent,'120');
+  assert.equal(d.querySelector('#credits-label').textContent,'120');assert.ok(d.querySelector('.ranking-panel[open]'));
   for(let round=1;round<=4;round++){
    assert.equal(d.querySelector('#round-label').textContent,String(round));
    for(const name of ['Arquitectura organizacional','Procesos y tecnología','Liderazgo']){
@@ -69,7 +69,8 @@ test('complete interface: room invitation, four rounds with debt, private decisi
    }
    d.querySelector('#reason-input').value='Alineamos procesos, estructura y liderazgo para responder al diagnóstico.';
    d.querySelector('#reason-input').dispatchEvent(new ui.w.Event('input'));
-   if(round===2){assert.match(d.querySelector('#budget-preview').textContent,/deuda de 20/);assert.ok(d.querySelector('#budget-preview').classList.contains('debt-bg'));}
+   if(round===2){assert.match(d.querySelector('#budget-preview').textContent,/deuda de 20/i);assert.ok(d.querySelector('#budget-preview').classList.contains('debt-bg'));}
+   if(round>=2){const before=ui.requests.filter(r=>r.p_action==='decide').length;await click(d,'#execute-btn');assert.equal(ui.requests.filter(r=>r.p_action==='decide').length,before);await click(d,'#loan-btn');assert.match(d.querySelector('#loan-btn').textContent,/Financiación aceptada/);}
    if(round===1){ui.failNextDecision();await click(d,'#execute-btn');assert.match(d.querySelector('#sync-message').textContent,/aún no está confirmada/);assert.equal(d.querySelectorAll('#history .decision-card').length,0);}
    await click(d,'#execute-btn');assert.equal(d.querySelectorAll('#history .decision-card').length,round);
    if(round>=2){assert.ok(d.querySelector('#balance-pill').classList.contains('debt'));assert.equal(d.querySelector('#credits-label').textContent,String(120-round*70));}
