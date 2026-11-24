@@ -28,13 +28,16 @@ w.GAME_CONFIG={SUPABASE_URL:'https://database.test',SUPABASE_ANON_KEY:'publishab
   let data;
   switch(req.p_action){
    case 'list':data=requests.some(r=>r.p_action==='create')?[room]:[];break;
-   case 'create':room={...room,title:req.p_data.title,code:req.p_code};data=room;break;
+   case 'create':room={...room,title:req.p_data.title,code:req.p_code,mode:req.p_data.mode,current_round:1,phase:req.p_data.mode==='guided'?'waiting':'open'};data=room;break;
    case 'room':data=room;break;
    case 'join':joined=true;data=snapshot();break;
    case 'host':data={room,teams:joined?[snapshot()]:[]};break;
    case 'delete_team':joined=false;data={room,teams:[]};break;
    case 'reset_team':current=0;data={room,teams:[snapshot()]};break;
    case 'rename_team':{const s=snapshot();s.name=req.p_data.name;data={room,teams:[s]};break;}
+   case 'open_round':room.phase='open';data={room,teams:joined?[snapshot()]:[]};break;
+   case 'close_round':room.phase='discussion';data={room,teams:joined?[snapshot()]:[]};break;
+   case 'advance_round':room.current_round++;room.phase='open';data={room,teams:joined?[snapshot()]:[]};break;
    case 'status':room.status=req.p_data.status;data={room,teams:joined?[snapshot()]:[]};break;
    case 'team':data=snapshot();break;
    case 'leaderboard':{const s=snapshot();delete s.history;delete s.scores;data=[s];break;}
@@ -55,7 +58,7 @@ test('complete interface: room invitation, four rounds with debt, private decisi
  const ui=setup(),{document:d}=ui;
  try{
   assert.equal(d.querySelector('#class-code').value,'QA-FIXTURE');
-  await login(ui);d.querySelector('#room-title').value='Sala de prueba';d.querySelector('#new-code').value='QA-FIXTURE';
+  await login(ui);d.querySelector('#room-title').value='Sala de prueba';d.querySelector('#new-code').value='QA-FIXTURE';d.querySelector('#room-mode').value='autonomous';
   await submit(d,'#room-form');assert.ok(d.querySelector('#host-screen').classList.contains('active'));
   assert.equal(d.querySelector('#host-team-count').textContent,'0');
   assert.equal(ui.requests.find(r=>r.p_action==='create').p_key,undefined);
@@ -144,3 +147,5 @@ test('facilitator team controls send scoped requests only after confirmation',as
  await click(d,'[data-action="delete_team"]');assert.ok(ui.requests.some(r=>r.p_action==='delete_team'&&r.p_code==='QA-FIXTURE'&&r.p_data.id));assert.equal(d.querySelector('#manage-count').textContent,'0 equipos');
  }finally{ui.close();}
 });
+
+test('guided host opens, closes and reopens rounds',async()=>{const ui=setup(),{document:d,w}=ui;try{await login(ui);d.querySelector('#room-title').value='Dirigida';d.querySelector('#new-code').value='QA-FIXTURE';d.querySelector('#room-mode').value='guided';await submit(d,'#room-form');assert.match(d.querySelector('#host-round-status').textContent,/Esperando/);await click(d,'#open-round');assert.match(d.querySelector('#host-round-status').textContent,/abiertas/);w.confirm=()=>true;await click(d,'#close-round');assert.match(d.querySelector('#host-round-status').textContent,/conversación/);assert.equal(d.querySelector('#advance-round').disabled,true);await click(d,'#open-round');assert.match(d.querySelector('#host-round-status').textContent,/abiertas/);}finally{ui.close();}});

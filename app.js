@@ -65,7 +65,7 @@ function renderSavedRooms(){
   if(!state.rooms.length){box.innerHTML='<p class="empty">Todavía no has creado salas con esta cuenta.</p>';return;}
   for(const room of state.rooms){
     const row=document.createElement('div');row.className='saved-room';
-    row.innerHTML=`<div><strong>${esc(room.title)}</strong><span>${esc(room.code)}</span></div>`;
+    row.innerHTML=`<div><strong>${esc(room.title)}</strong><span>${esc(room.code)} · ${room.mode==='guided'?'Dirigida':'Autogestionada'}</span></div>`;
     const button=document.createElement('button');button.className='secondary';button.textContent='Abrir';
     button.onclick=async()=>{setBusy(button,true);try{await openHost(room);}catch(error){row.querySelector('span').textContent=error.message;}finally{setBusy(button,false);}};
     row.append(button);box.append(row);
@@ -73,7 +73,7 @@ function renderSavedRooms(){
 }
 async function openHost(host){
   const data=await facApi('host',host.code);state.host=host;state.hostData=data;
-  $('#host-title').textContent=data.room.title;
+  $('#host-title').textContent=data.room.title;$('#round-filter').value=data.room.mode==='guided'?String(data.room.current_round):'';$('#round-control-message').textContent='';
   $('#share-code').textContent=host.code;
   const link=roomLink(host.code,location.href);$('#share-link').value=link;$('#room-qr').replaceChildren();
   if(window.QRCode)new window.QRCode($('#room-qr'),{text:link,width:160,height:160,colorDark:'#0b1224',colorLight:'#ffffff',correctLevel:window.QRCode.CorrectLevel.M});
@@ -119,9 +119,34 @@ async function manageTeam(action,id){
   finally{state.managing=false;if(state.host?.code===code&&state.screen==='host-screen'){renderHost();$('#manage-teams').querySelectorAll('button').forEach(b=>b.disabled=false);}}
 }
 $('#manage-teams').onclick=e=>{const button=e.target.closest('button[data-action]');if(button)manageTeam(button.dataset.action,button.dataset.id);};
+function renderRoundControl(room,teams){
+ const guided=room.mode==='guided',r=room.current_round||1,phase=room.phase||'open',done=teams.filter(t=>t.round===r&&t.resolved).length;
+ $('#round-control').classList.toggle('hidden',!guided);
+ if(!guided)return;
+ $('#host-round-label').textContent='Ronda '+r+' de 4';
+ $('#host-round-status').textContent=({waiting:'Esperando apertura',open:'Decisiones abiertas',discussion:'Ronda cerrada · espacio de conversación',finished:'Simulación finalizada'})[phase]+' · '+done+' de '+teams.length+' equipos respondieron';
+ $('#open-round').classList.toggle('hidden',!['waiting','discussion'].includes(phase));$('#open-round').textContent=phase==='discussion'?'Reabrir ronda':'Abrir ronda';
+ $('#close-round').classList.toggle('hidden',phase!=='open');
+ $('#advance-round').classList.toggle('hidden',phase!=='discussion');$('#advance-round').textContent=r===4?'Finalizar simulación':'Abrir ronda '+(r+1);
+ $('#advance-round').disabled=state.managing||done!==teams.length||!teams.length;
+ if(phase==='discussion'&&done!==teams.length)$('#host-round-status').textContent+=' · Reabre para recibir las decisiones pendientes o gestiona los equipos.';
+}
+async function controlRound(action){
+ if(state.managing||!state.host)return;
+ const code=state.host.code;
+ if(action==='close_round'&&!window.confirm('¿Cerrar esta ronda y abrir el espacio de conversación? Podrás reabrirla si hace falta.'))return;
+ state.managing=true;$('#round-control-message').textContent='Guardando…';
+ try{const result=await facApi(action,code);if(state.host?.code!==code||state.screen!=='host-screen')return;state.hostData=result;$('#round-filter').value=String(result.room.current_round);$('#round-control-message').textContent='Control actualizado.';}
+ catch(e){if(state.host?.code===code)$('#round-control-message').textContent=e.message;}
+ finally{state.managing=false;if(state.host?.code===code&&state.screen==='host-screen')renderHost();}
+}
+$('#open-round').onclick=()=>controlRound('open_round');
+$('#close-round').onclick=()=>controlRound('close_round');
+$('#advance-round').onclick=()=>controlRound('advance_round');
+function guidedBlocked(t){return t.mode==='guided'&&(t.phase!=='open'||t.current_round!==t.round);}
 function renderHost(){
-  const {room,teams}=state.hostData;renderManagement(teams);
-  $('#host-status').textContent=`Ingreso ${room.status==='open'?'abierto':'cerrado'} · Actualización automática cada 4 segundos.`;
+  const {room,teams}=state.hostData;renderManagement(teams);renderRoundControl(room,teams);
+  $('#host-status').textContent=`${room.mode==='guided'?'Dirigida':'Autogestionada'} · Ingreso ${room.status==='open'?'abierto':'cerrado'} · Actualización automática cada 4 segundos.`;
   $('#toggle-room').textContent=room.status==='open'?'Cerrar ingreso':'Reabrir ingreso';
   $('#host-team-count').textContent=teams.length;
   $('#host-decision-count').textContent=teams.reduce((n,t)=>n+t.history.length,0);
@@ -159,29 +184,30 @@ function renderGame(){
   $('#agile-badge').textContent=`Agile ${m.agile}/100`;$('#coherence-label').textContent=`${m.coherence}%`;$('#coherence-bar').style.width=`${m.coherence}%`;
   $('#history').innerHTML=t.history.length?t.history.map(decisionCard).join(''):'<p class="hint">Aquí verás las consecuencias de tus decisiones.</p>';
   $('#round-board').innerHTML=t.history.length?`<table><thead><tr><th>Ronda</th><th>Agile</th><th>Coherencia</th><th>Saldo</th><th>Deuda</th><th>Puntaje</th></tr></thead><tbody>${t.history.map(h=>`<tr><td>${h.round}</td><td>${h.agile}</td><td>${h.coherence}%</td><td class="${h.debt?'debt':''}">${h.creditsLeft}</td><td>${h.debt}</td><td>${h.total}</td></tr>`).join('')}</tbody></table>`:'';
-  $('#reason-input').disabled=t.resolved;$('#reason-count').textContent=`${$('#reason-input').value.length}/180`;$('#execute-btn').disabled=t.resolved||state.busy;
+  const guided=t.mode==='guided',blocked=guidedBlocked(t);$('#guided-status').classList.toggle('hidden',!guided);if(guided)$('#guided-status').textContent=t.resolved?'Decisión registrada. Espera a que el facilitador habilite la siguiente ronda.':blocked?(t.phase==='discussion'?'Ronda cerrada. Escucha la conversación; el facilitador puede reabrirla.':'Espera a que el facilitador abra la ronda.'):'Ronda abierta. Toma tu decisión a tu ritmo; el facilitador controla el avance.';
+  $('#reason-input').disabled=t.resolved||blocked;$('#reason-count').textContent=`${$('#reason-input').value.length}/180`;$('#execute-btn').disabled=t.resolved||state.busy||blocked;$('#next-btn').classList.toggle('hidden',guided);
   $('#round-footer').classList.toggle('hidden',!t.resolved);
   if(t.resolved){const h=t.history.at(-1);$('#footer-result-title').textContent=h.timedOut?'Tiempo agotado':`Decisión ${h.outcome}`;$('#footer-result-text').textContent=`${h.consequence} ${h.synergies.join(' ')} Agile ${h.agile}/100 · Coherencia ${h.coherence}% · Saldo ${h.creditsLeft}${h.debt?` · Deuda ${h.debt} · Penalización −${h.penalty} puntos`:''}.`;$('#round-debrief').innerHTML=debriefHtml(h);$('#round-talk').textContent=episodes[t.round-1].talk[0];$('#next-btn').textContent=t.round<4?`Continuar a la ronda ${t.round+1}`:'Ver resultado final';}
   renderLevers();tick();
 }
 function renderLevers(){
   const t=state.team,box=$('#levers-grid');box.replaceChildren();
-  for(const l of levers){const selected=state.selected.includes(l.id),button=document.createElement('button');button.type='button';button.className=`lever${selected?' selected':''}`;button.setAttribute('aria-pressed',String(selected));button.disabled=t.resolved||state.busy;button.innerHTML=`<strong>${esc(l.name)}</strong><span class="lever-cost">${l.cost} cr.</span><p>${esc(l.desc)}</p>`;button.onclick=()=>{if(state.busy||t.resolved)return;const index=state.selected.indexOf(l.id);if(index>=0)state.selected.splice(index,1);else if(state.selected.length<3)state.selected.push(l.id);else{$('#validation-msg').textContent='Puedes elegir máximo tres palancas.';return;}state.loanApproved=false;$('#validation-msg').textContent='';renderLevers();saveDraft();};box.append(button);}
+  for(const l of levers){const selected=state.selected.includes(l.id),button=document.createElement('button');button.type='button';button.className=`lever${selected?' selected':''}`;button.setAttribute('aria-pressed',String(selected));button.disabled=t.resolved||state.busy||guidedBlocked(t);button.innerHTML=`<strong>${esc(l.name)}</strong><span class="lever-cost">${l.cost} cr.</span><p>${esc(l.desc)}</p>`;button.onclick=()=>{if(state.busy||t.resolved||guidedBlocked(t))return;const index=state.selected.indexOf(l.id);if(index>=0)state.selected.splice(index,1);else if(state.selected.length<3)state.selected.push(l.id);else{$('#validation-msg').textContent='Puedes elegir máximo tres palancas.';return;}state.loanApproved=false;$('#validation-msg').textContent='';renderLevers();saveDraft();};box.append(button);}
   $('#selection-label').textContent=`${state.selected.length}/3`;
   const p=creditPlan(t.credits,state.selected);
   $('#budget-preview').classList.toggle('debt-bg',p.debt>0);
-  $('#budget-preview').innerHTML=`<div><span>Costo de esta decisión</span><strong>${p.cost} cr.</strong></div><div><span>Saldo ${t.resolved?'actual':'previsto'}</span><strong class="${p.debt?'debt':''}">${p.after} cr.</strong></div><p>${p.debt?`Deuda de ${p.debt} créditos · Penalización total −${p.penalty} puntos en el ranking.`:'El presupuesto es único para las cuatro rondas.'}</p>${!t.resolved&&p.loan?`<p>El Comité Financiero puede prestar ${p.loan} créditos adicionales. Esto añade ${p.extraPenalty} puntos de penalización. No necesitas salir del juego.</p><button type="button" class="${state.loanApproved?'secondary':'primary'} wide" id="loan-btn" ${state.busy?'disabled':''}>${state.loanApproved?'Financiación aceptada · Cancelar':'Solicitar '+p.loan+' créditos'}</button><p class="hint">${state.loanApproved?'El préstamo quedará registrado cuando ejecutes esta decisión.':'Solicita financiación o reduce tus intervenciones antes de ejecutar.'}</p>`:''}`;
+  $('#budget-preview').innerHTML=`<div><span>Costo de esta decisión</span><strong>${p.cost} cr.</strong></div><div><span>Saldo ${t.resolved?'actual':'previsto'}</span><strong class="${p.debt?'debt':''}">${p.after} cr.</strong></div><p>${p.debt?`Deuda de ${p.debt} créditos · Penalización total −${p.penalty} puntos en el ranking.`:'El presupuesto es único para las cuatro rondas.'}</p>${!t.resolved&&!guidedBlocked(t)&&p.loan?`<p>El Comité Financiero puede prestar ${p.loan} créditos adicionales. Esto añade ${p.extraPenalty} puntos de penalización. No necesitas salir del juego.</p><button type="button" class="${state.loanApproved?'secondary':'primary'} wide" id="loan-btn" ${state.busy?'disabled':''}>${state.loanApproved?'Financiación aceptada · Cancelar':'Solicitar '+p.loan+' créditos'}</button><p class="hint">${state.loanApproved?'El préstamo quedará registrado cuando ejecutes esta decisión.':'Solicita financiación o reduce tus intervenciones antes de ejecutar.'}</p>`:''}`;
   const loan=$('#loan-btn');if(loan)loan.onclick=()=>{state.loanApproved=!state.loanApproved;renderLevers();};
 }
 function tick(){
   if(state.screen!=='game-screen'||!state.team)return;
-  const t=state.team,remaining=t.resolved?0:Math.max(0,Math.ceil((Date.parse(t.deadline)-Date.now()-state.offset)/1000));
+  const t=state.team;if(t.mode==='guided'){$('#timer-label').textContent=t.resolved?'En espera':guidedBlocked(t)?'Cerrada':'Sin límite automático';$('#timer-pill').classList.remove('urgent');return;}const remaining=t.resolved?0:Math.max(0,Math.ceil((Date.parse(t.deadline)-Date.now()-state.offset)/1000));
   $('#timer-label').textContent=t.resolved?'Ronda cerrada':`${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}`;
   $('#timer-pill').classList.toggle('urgent',!t.resolved&&remaining<=60);
   if(remaining===0&&!t.resolved&&!state.busy&&navigator.onLine&&Date.now()>(state.retryAfter||0))executeDecision(true);
 }
 async function executeDecision(timedOut=false){
-  if(state.busy||state.team.resolved)return;
+  if(state.busy||state.team.resolved||guidedBlocked(state.team))return;
   const plan=creditPlan(state.team.credits,state.selected);
   if(!timedOut&&plan.loan&&!state.loanApproved){$('#validation-msg').textContent='Solicita financiación al Comité Financiero o ajusta las palancas.';return;}
   const unfunded=timedOut&&plan.loan&&!state.loanApproved;
@@ -194,10 +220,10 @@ async function executeDecision(timedOut=false){
     applyTeam(t);$('#validation-msg').textContent='Decisión guardada.';$('#sync-message').textContent='Tu decisión y sus consecuencias quedaron guardadas.';$('#sync-message').classList.remove('error');
     renderGame();await loadLeaderboard();$('#round-footer').scrollIntoView({behavior:'smooth',block:'center'});
   }catch(e){state.retryAfter=Date.now()+10000;$('#validation-msg').textContent=e.message;$('#sync-message').textContent='La decisión aún no está confirmada. Puedes volver a intentarlo.';$('#sync-message').classList.add('error');}
-  finally{state.busy=false;$('#execute-btn').disabled=state.team.resolved;renderLevers();}
+  finally{state.busy=false;$('#execute-btn').disabled=state.team.resolved||guidedBlocked(state.team);renderLevers();}
 }
 async function nextRound(){
-  if(state.busy)return;state.busy=true;setBusy($('#next-btn'),true);
+  if(state.busy||state.team.mode==='guided')return;state.busy=true;setBusy($('#next-btn'),true);
   try{const t=await api('next',state.team.room_code,state.credential.key,{id:state.team.id,round:state.team.round});applyTeam(t,true);$('#validation-msg').textContent='';if(t.finished){renderFinish();show('finish-screen');}else{renderGame();window.scrollTo({top:0,behavior:'smooth'});}}
   catch(e){$('#validation-msg').textContent=e.message;$('#sync-message').textContent=e.message;$('#sync-message').classList.add('error');}
   finally{state.busy=false;setBusy($('#next-btn'),false);if(!state.team.finished)renderGame();}
@@ -223,7 +249,7 @@ async function refreshGame(){
   try{
     const t=await api('team',state.team.room_code,state.credential.key,{id:state.team.id});
     if(!['game-screen','finish-screen'].includes(state.screen))return;
-    if(Date.parse(t.updated_at)>Date.parse(state.team.updated_at)){const previous=state.team;const reset=t.round===1&&t.history.length===0&&(previous.history.length>0||t.deadline!==previous.deadline);if(reset){for(const key of Object.keys(local.drafts))if(key.startsWith(t.id+':'))delete local.drafts[key];}if(state.credential.name!==t.name){state.credential.name=t.name;$('#team-name').value=t.name;}try{persist();}catch{}applyTeam(t,!reset);if(t.finished){renderFinish();if(state.screen!=='finish-screen')show('finish-screen');}else{if(state.screen==='finish-screen')show('game-screen');renderGame();}}
+    if(Date.parse(t.updated_at)>Date.parse(state.team.updated_at)||t.phase!==state.team.phase||t.current_round!==state.team.current_round){const previous=state.team;const reset=t.round===1&&t.history.length===0&&(previous.history.length>0||t.deadline!==previous.deadline);if(reset){for(const key of Object.keys(local.drafts))if(key.startsWith(t.id+':'))delete local.drafts[key];}if(state.credential.name!==t.name){state.credential.name=t.name;$('#team-name').value=t.name;}try{persist();}catch{}applyTeam(t,!reset);if(t.finished){renderFinish();if(state.screen!=='finish-screen')show('finish-screen');}else{if(state.screen==='finish-screen')show('game-screen');renderGame();}}
     await loadLeaderboard();$('#sync-message').textContent='Progreso guardado · Puedes retomar desde este navegador.';$('#sync-message').classList.remove('error');
   }catch(e){if(e.message==='No se pudo verificar el acceso de este equipo.'){const removed=state.team;local.teams=local.teams.filter(c=>c.id!==removed.id);for(const key of Object.keys(local.drafts))if(key.startsWith(removed.id+':'))delete local.drafts[key];try{persist();}catch{}state.team=null;state.credential=null;show('start-screen');$('#join-message').textContent='Tu equipo ya no está en esta sala. Consulta con el facilitador antes de volver a ingresar.';return;}$('#sync-message').textContent=`No se pudo actualizar. ${e.message}`;$('#sync-message').classList.add('error');$('#live-status').textContent='No se pudo actualizar el ranking. Mostramos la última información disponible.';$('#final-live-status').textContent=$('#live-status').textContent;}
   finally{state.refreshing=false;}
@@ -245,7 +271,7 @@ $('#back-rooms').onclick=async()=>{try{await loadRooms();show('fac-screen');}cat
 $('#room-form').onsubmit=async event=>{
   event.preventDefault();const code=normalizeCode($('#new-code').value),title=$('#room-title').value.trim(),button=$('#create-room-btn');
   if(!validCode(code))return;setBusy(button,true);$('#create-message').textContent='Creando sala…';
-  try{const room=await facApi('create',code,{title});await openHost(room);$('#create-message').textContent='';}
+  try{const room=await facApi('create',code,{title,mode:$('#room-mode').value});await openHost(room);$('#create-message').textContent='';}
   catch(error){$('#create-message').textContent=error.message;}finally{setBusy(button,false);}
 };
 $('#recover-form').onsubmit=async event=>{event.preventDefault();const button=event.submitter;setBusy(button,true);try{const room=await facApi('claim',normalizeCode($('#recover-code').value),{key:$('#recover-key').value.trim()});$('#recover-key').value='';await loadRooms();await openHost(room);$('#recover-message').textContent='';}catch(error){$('#recover-message').textContent=error.message;}finally{setBusy(button,false);}};

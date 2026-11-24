@@ -1,5 +1,9 @@
-create or replace function tension_private.facilitator(p_action text,p_uid text,p_code text,p_data jsonb) returns jsonb
-language plpgsql security definer set search_path='' as $$
+CREATE OR REPLACE FUNCTION tension_private.facilitator(p_action text, p_uid text, p_code text, p_data jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
 declare r tension_private.rooms; title text; key_hash text; team_id uuid; new_name text;
 begin
  if p_uid is null or char_length(p_uid) not between 1 and 128 then raise exception using errcode='42501',message='Inicia sesión como facilitador.'; end if;
@@ -49,7 +53,6 @@ begin
  end if;
  return jsonb_build_object('room',to_jsonb(r)-'host_hash'-'owner_uid','teams',
   (select coalesce(jsonb_agg(tension_private.team_json(t,true) order by t.created_at),'[]') from tension_private.teams t where room_code=p_code));
-end; $$;
-
+end; $function$;
 revoke all on function tension_private.facilitator(text,text,text,jsonb) from public,anon,authenticated;
 grant execute on function tension_private.facilitator(text,text,text,jsonb) to service_role;
