@@ -32,6 +32,9 @@ w.GAME_CONFIG={SUPABASE_URL:'https://database.test',SUPABASE_ANON_KEY:'publishab
    case 'room':data=room;break;
    case 'join':joined=true;data=snapshot();break;
    case 'host':data={room,teams:joined?[snapshot()]:[]};break;
+   case 'delete_team':joined=false;data={room,teams:[]};break;
+   case 'reset_team':current=0;data={room,teams:[snapshot()]};break;
+   case 'rename_team':{const s=snapshot();s.name=req.p_data.name;data={room,teams:[s]};break;}
    case 'status':room.status=req.p_data.status;data={room,teams:joined?[snapshot()]:[]};break;
    case 'team':data=snapshot();break;
    case 'leaderboard':{const s=snapshot();delete s.history;delete s.scores;data=[s];break;}
@@ -128,5 +131,16 @@ test('facilitator entry requires login and invalid credentials never open the ro
   assert.match(d.querySelector('#login-message').textContent,/incorrectos/);
   assert.ok(d.querySelector('#login-screen').classList.contains('active'));
   assert.ok(!ui.requests.some(r=>['list','host','create'].includes(r.p_action)));
+ }finally{ui.close();}
+});
+
+test('facilitator team controls send scoped requests only after confirmation',async()=>{
+ const ui=setup(),{document:d,w}=ui;
+ try{await login(ui);d.querySelector('#room-title').value='Sala de prueba';d.querySelector('#new-code').value='QA-FIXTURE';await submit(d,'#room-form');ui.joinExternal();await click(d,'#host-refresh');
+ assert.equal(d.querySelectorAll('#manage-teams button').length,3);
+ w.confirm=()=>false;await click(d,'[data-action="delete_team"]');assert.ok(!ui.requests.some(r=>r.p_action==='delete_team'));
+ w.prompt=()=> 'Equipo corregido';await click(d,'[data-action="rename_team"]');assert.match(d.querySelector('#manage-teams').textContent,/Equipo corregido/);
+ w.confirm=()=>true;await click(d,'[data-action="reset_team"]');assert.ok(ui.requests.some(r=>r.p_action==='reset_team'));
+ await click(d,'[data-action="delete_team"]');assert.ok(ui.requests.some(r=>r.p_action==='delete_team'&&r.p_code==='QA-FIXTURE'&&r.p_data.id));assert.equal(d.querySelector('#manage-count').textContent,'0 equipos');
  }finally{ui.close();}
 });

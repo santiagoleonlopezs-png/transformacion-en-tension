@@ -39,7 +39,7 @@ async function facApi(action,code=null,data={}){
 }
 function clearFacilitator(){
   state.authEpoch++;state.facilitator=null;state.rooms=[];state.host=null;state.hostData=null;
-  $('#saved-rooms').replaceChildren();$('#host-teams').replaceChildren();$('#host-live-body').replaceChildren();$('#host-discussion').replaceChildren();$('#share-link').value='';$('#room-qr').replaceChildren();$('#fac-email').textContent='';
+  $('#saved-rooms').replaceChildren();$('#host-teams').replaceChildren();$('#manage-teams').replaceChildren();$('#manage-message').textContent='';$('#host-live-body').replaceChildren();$('#host-discussion').replaceChildren();$('#share-link').value='';$('#room-qr').replaceChildren();$('#fac-email').textContent='';
 }
 async function loadRooms(){state.rooms=await facApi('list');renderSavedRooms();}
 async function enterFacilitator(){
@@ -82,9 +82,9 @@ async function openHost(host){
   renderHost();show('host-screen');
 }
 async function refreshHost(){
-  if(state.screen!=='host-screen'||state.refreshing||!state.host)return;
+  if(state.screen!=='host-screen'||state.refreshing||state.managing||!state.host)return;
   state.refreshing=true;const code=state.host.code;
-  try{const data=await facApi('host',code);if(state.screen!=='host-screen'||state.host.code!==code)return;state.hostData=data;renderHost();}
+  try{const data=await facApi('host',code);if(state.screen!=='host-screen'||state.host.code!==code||state.managing)return;state.hostData=data;renderHost();}
   catch(e){if(state.screen==='host-screen')$('#host-status').textContent=`No se pudo actualizar: ${e.message}`;}
   finally{state.refreshing=false;}
 }
@@ -93,8 +93,34 @@ function debriefHtml(h){const d=roundDebrief(h);return `<div class="impact-story
 function decisionCard(h){
   return `<article class="decision-card"><h3>Ronda ${h.round} · ${esc(h.title)}</h3><p><strong>Palancas:</strong> ${h.levers.length?h.levers.map(esc).join(' · '):'Decidieron no intervenir'}</p><blockquote>${esc(h.reason)}</blockquote><p><strong>${esc(h.outcome.charAt(0).toUpperCase()+h.outcome.slice(1))}.</strong> ${esc(h.consequence)}</p>${h.synergies?.length?`<p>${h.synergies.map(esc).join(' ')}</p>`:''}${debriefHtml(h)}<div class="decision-metrics"><span>Costo ${h.cost}</span><span class="${h.debt?'debt':''}">Saldo ${h.creditsLeft}${h.debt?` · Deuda ${h.debt}`:''}</span><span>Penalización −${h.penalty}</span><span>Agile ${h.agile} (${h.deltaAgile>0?'+':''}${h.deltaAgile})</span><span>Coherencia ${h.coherence}% (${h.deltaCoherence>0?'+':''}${h.deltaCoherence})</span><span>Puntaje ${h.total}/100</span></div><div class="decision-date">${esc(formatDate(h.at))}${h.timedOut?' · Tiempo agotado':''}</div></article>`;
 }
+function renderManagement(teams){
+  $('#manage-count').textContent=teams.length+' equipos';
+  const box=$('#manage-teams');
+  if(state.managing)return;
+  const markup=teams.length?`<table><thead><tr><th>Equipo</th><th>Progreso</th><th>Saldo</th><th>Acciones</th></tr></thead><tbody>${teams.map(t=>`<tr><td><strong>${esc(t.name)}</strong></td><td>${t.finished?'Finalizado':'Ronda '+t.round+'/4'} · ${t.history.length} decisiones</td><td class="${t.credits<0?'debt':''}">${t.credits} cr.</td><td><div class="manage-actions"><button type="button" class="secondary" data-action="rename_team" data-id="${esc(t.id)}">Renombrar</button><button type="button" class="secondary" data-action="reset_team" data-id="${esc(t.id)}">Reiniciar</button><button type="button" class="danger-action" data-action="delete_team" data-id="${esc(t.id)}">Eliminar</button></div></td></tr>`).join('')}</tbody></table>`:'<p class="empty">Todavía no hay equipos en esta sala.</p>';
+  if(box.dataset.markup!==markup||!box.children.length){box.innerHTML=markup;box.dataset.markup=markup;}
+}
+async function manageTeam(action,id){
+  if(state.managing||!state.host)return;
+  const team=state.hostData.teams.find(t=>t.id===id);if(!team)return;
+  const data={id};
+  if(action==='rename_team'){
+    const name=window.prompt('Nuevo nombre del equipo:',team.name);if(name===null||name.trim()===team.name)return;
+    data.name=name.trim();if(!data.name||data.name.length>40){$('#manage-message').textContent='Escribe un nombre de 1 a 40 caracteres.';return;}
+  }else if(action==='reset_team'){
+    if(!window.confirm('¿Reiniciar a '+team.name+'? Se borrarán sus decisiones, deuda y puntaje. Volverá a la ronda 1 con 120 créditos.'))return;
+  }else if(action==='delete_team'){
+    if(!window.confirm('¿Eliminar a '+team.name+' de esta sala? Se borrarán sus respuestas, historial y posición en el ranking. Esta acción no se puede deshacer.'))return;
+  }else return;
+  const code=state.host.code;state.managing=true;$('#manage-message').textContent='Guardando cambio…';
+  $('#manage-teams').querySelectorAll('button').forEach(b=>b.disabled=true);
+  try{const result=await facApi(action,code,data);if(state.host?.code!==code||state.screen!=='host-screen')return;state.hostData=result;$('#manage-message').textContent=action==='delete_team'?'Equipo eliminado.':action==='reset_team'?'Equipo reiniciado.':'Nombre actualizado.';}
+  catch(e){if(state.host?.code===code)$('#manage-message').textContent=e.message;}
+  finally{state.managing=false;if(state.host?.code===code&&state.screen==='host-screen'){renderHost();$('#manage-teams').querySelectorAll('button').forEach(b=>b.disabled=false);}}
+}
+$('#manage-teams').onclick=e=>{const button=e.target.closest('button[data-action]');if(button)manageTeam(button.dataset.action,button.dataset.id);};
 function renderHost(){
-  const {room,teams}=state.hostData;
+  const {room,teams}=state.hostData;renderManagement(teams);
   $('#host-status').textContent=`Ingreso ${room.status==='open'?'abierto':'cerrado'} · Actualización automática cada 4 segundos.`;
   $('#toggle-room').textContent=room.status==='open'?'Cerrar ingreso':'Reabrir ingreso';
   $('#host-team-count').textContent=teams.length;
@@ -197,9 +223,9 @@ async function refreshGame(){
   try{
     const t=await api('team',state.team.room_code,state.credential.key,{id:state.team.id});
     if(!['game-screen','finish-screen'].includes(state.screen))return;
-    if(Date.parse(t.updated_at)>Date.parse(state.team.updated_at)){applyTeam(t,true);if(t.finished){renderFinish();if(state.screen!=='finish-screen')show('finish-screen');}else renderGame();}
+    if(Date.parse(t.updated_at)>Date.parse(state.team.updated_at)){const previous=state.team;const reset=t.round===1&&t.history.length===0&&(previous.history.length>0||t.deadline!==previous.deadline);if(reset){for(const key of Object.keys(local.drafts))if(key.startsWith(t.id+':'))delete local.drafts[key];}if(state.credential.name!==t.name){state.credential.name=t.name;$('#team-name').value=t.name;}try{persist();}catch{}applyTeam(t,!reset);if(t.finished){renderFinish();if(state.screen!=='finish-screen')show('finish-screen');}else{if(state.screen==='finish-screen')show('game-screen');renderGame();}}
     await loadLeaderboard();$('#sync-message').textContent='Progreso guardado · Puedes retomar desde este navegador.';$('#sync-message').classList.remove('error');
-  }catch(e){$('#sync-message').textContent=`No se pudo actualizar. ${e.message}`;$('#sync-message').classList.add('error');$('#live-status').textContent='No se pudo actualizar el ranking. Mostramos la última información disponible.';$('#final-live-status').textContent=$('#live-status').textContent;}
+  }catch(e){if(e.message==='No se pudo verificar el acceso de este equipo.'){const removed=state.team;local.teams=local.teams.filter(c=>c.id!==removed.id);for(const key of Object.keys(local.drafts))if(key.startsWith(removed.id+':'))delete local.drafts[key];try{persist();}catch{}state.team=null;state.credential=null;show('start-screen');$('#join-message').textContent='Tu equipo ya no está en esta sala. Consulta con el facilitador antes de volver a ingresar.';return;}$('#sync-message').textContent=`No se pudo actualizar. ${e.message}`;$('#sync-message').classList.add('error');$('#live-status').textContent='No se pudo actualizar el ranking. Mostramos la última información disponible.';$('#final-live-status').textContent=$('#live-status').textContent;}
   finally{state.refreshing=false;}
 }
 async function copy(text){if(!navigator.clipboard?.writeText)throw Error('No se pudo copiar automáticamente. Selecciona y copia el enlace de la sala.');await navigator.clipboard.writeText(text);}
@@ -229,7 +255,7 @@ $('#team-form').onsubmit=async event=>{
   try{
     let credential=local.teams.find(t=>t.code===code&&t.name.toLowerCase()===name.toLowerCase());
     if(!credential){credential={code,name,key:randomKey()};local.teams.push(credential);persist();}
-    const t=await api('join',code,credential.key,{name});credential.id=t.id;persist();state.credential=credential;applyTeam(t,true);$('#join-message').textContent='';
+    let t;if(credential.id){try{t=await api('team',code,credential.key,{id:credential.id});}catch(e){if(e.message!=='No se pudo verificar el acceso de este equipo.')throw e;}}if(!t)t=await api('join',code,credential.key,{name});credential.name=t.name;credential.id=t.id;persist();state.credential=credential;applyTeam(t,true);$('#join-message').textContent='';
     if(t.finished){renderFinish();show('finish-screen');}else{show('game-screen');renderGame();}
   }catch(e){$('#join-message').textContent=e.message;}finally{setBusy(button,false);}
 };
