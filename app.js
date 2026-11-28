@@ -179,7 +179,7 @@ function saveDraft(){if(!state.team||state.team.resolved)return;local.drafts[dra
 function applyTeam(team,restoreDraft=false){
   state.team=team;state.loanApproved=false;state.offset=team.server_now?Date.parse(team.server_now)-Date.now():0;
   state.selected=[];
-  if(restoreDraft&&!team.resolved){const draft=local.drafts[draftKey()];if(draft){state.selected=draft.selected.filter(id=>levers.some(l=>l.id===id)).slice(0,3);$('#reason-input').value=String(draft.reason||'').slice(0,180);}else $('#reason-input').value='';}
+  if(restoreDraft&&!team.resolved){const draft=local.drafts[draftKey()];if(draft){state.selected=[...new Set(draft.selected.filter(id=>levers.some(l=>l.id===id)))];$('#reason-input').value=String(draft.reason||'').slice(0,180);}else $('#reason-input').value='';}
   else $('#reason-input').value=team.resolved?(team.history.at(-1)?.reason||''):'';
   if(team.resolved){delete local.drafts[draftKey()];try{persist();}catch{}}
 }
@@ -205,8 +205,8 @@ function renderGame(){
 }
 function renderLevers(){
   const t=state.team,box=$('#levers-grid');box.replaceChildren();
-  for(const l of levers){const selected=state.selected.includes(l.id),button=document.createElement('button');button.type='button';button.className=`lever${selected?' selected':''}`;button.setAttribute('aria-pressed',String(selected));button.disabled=t.resolved||state.busy||guidedBlocked(t);button.innerHTML=`<strong>${esc(l.name)}</strong><span class="lever-cost">${l.cost} cr.</span><p>${esc(l.desc)}</p>`;button.onclick=()=>{if(state.busy||t.resolved||guidedBlocked(t))return;const index=state.selected.indexOf(l.id);if(index>=0)state.selected.splice(index,1);else if(state.selected.length<3)state.selected.push(l.id);else{$('#validation-msg').textContent='Puedes elegir máximo tres palancas.';return;}state.loanApproved=false;$('#validation-msg').textContent='';renderLevers();saveDraft();};box.append(button);}
-  $('#selection-label').textContent=`${state.selected.length}/3`;
+  for(const l of levers){const selected=state.selected.includes(l.id),button=document.createElement('button');button.type='button';button.className=`lever${selected?' selected':''}`;button.setAttribute('aria-pressed',String(selected));button.disabled=t.resolved||state.busy||guidedBlocked(t);button.innerHTML=`<strong>${esc(l.name)}</strong><span class="lever-cost">${l.cost} cr.</span><p>${esc(l.desc)}</p>`;button.onclick=()=>{if(state.busy||t.resolved||guidedBlocked(t))return;const index=state.selected.indexOf(l.id);if(index>=0)state.selected.splice(index,1);else state.selected.push(l.id);state.loanApproved=false;$('#validation-msg').textContent='';renderLevers();saveDraft();};box.append(button);}
+  $('#selection-label').textContent=`${state.selected.length} de ${levers.length}`;
   const p=creditPlan(t.credits,state.selected);
   $('#budget-preview').classList.toggle('debt-bg',p.debt>0);
   $('#budget-preview').innerHTML=`<div><span>Costo de esta decisión</span><strong>${p.cost} cr.</strong></div><div><span>Saldo ${t.resolved?'actual':'previsto'}</span><strong class="${p.debt?'debt':''}">${p.after} cr.</strong></div><p>${p.debt?`Deuda de ${p.debt} créditos · Penalización total −${p.penalty} puntos en el ranking.`:'El presupuesto es único para las cuatro rondas.'}</p>${!t.resolved&&!guidedBlocked(t)&&p.loan?`<p>El Comité Financiero puede prestar ${p.loan} créditos adicionales. Esto añade ${p.extraPenalty} puntos de penalización. No necesitas salir del juego.</p><button type="button" class="${state.loanApproved?'secondary':'primary'} wide" id="loan-btn" ${state.busy?'disabled':''}>${state.loanApproved?'Financiación aceptada · Cancelar':'Solicitar '+p.loan+' créditos'}</button><p class="hint">${state.loanApproved?'El préstamo quedará registrado cuando ejecutes esta decisión.':'Solicita financiación o reduce tus intervenciones antes de ejecutar.'}</p>`:''}`;
