@@ -81,7 +81,7 @@ export const levers = [
     {id:"talent", name:"Prácticas de Talento Humano", cost:20, desc:"Alinear selección, desarrollo, desempeño y reconocimiento con la cultura.", effects:{Skills:2,Staff:1}},
     {id:"culture", name:"Prácticas Culturales", cost:15, desc:"Instalar rituales, símbolos, conversaciones y hábitos que refuercen la cultura.", effects:{"Shared Values":2,Style:1}},
     {id:"architecture", name:"Arquitectura organizacional", cost:25, desc:"Ajustar estructura, roles, responsabilidades y flujo de decisiones.", effects:{Structure:2,Systems:1}},
-    {id:"workspace", name:"Espacio de trabajo", cost:10, desc:"Diseñar espacios físicos o digitales que favorezcan colaboración y nuevas dinámicas.", effects:{Staff:1,Systems:1}},
+    {id:"workspace", name:"Espacio de trabajo", cost:10, desc:"Diseñar y adecuar espacios físicos de trabajo que favorezcan la colaboración, la interacción y nuevas formas de trabajar.", effects:{Staff:1,Systems:1}},
     {id:"process", name:"Procesos y tecnología", cost:25, desc:"Alinear procesos, herramientas y tecnología con comportamientos y formas de trabajo esperadas.", effects:{Systems:2,Structure:1}},
     {id:"change", name:"Gestión de cambio", cost:15, desc:"Gestionar transición, adopción y apropiación de la cultura deseada.", effects:{"Shared Values":1,Skills:1,Strategy:1}}
   ];
