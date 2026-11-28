@@ -1,4 +1,4 @@
-import {rounds,levers,metrics,roomLink,decisionsCsv,episodes,creditPlan,roundDebrief} from './game.mjs?v=20261123-tension';
+import {rounds,levers,metrics,roomLink,decisionsCsv,episodes,creditPlan,roundDebrief} from './game.mjs?v=20261128-physical';
 import * as FacAuth from './facilitator-auth.mjs';
 
 const $=selector=>document.querySelector(selector);
