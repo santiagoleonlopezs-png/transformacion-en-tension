@@ -56,7 +56,7 @@ function show(id){
   $('#fac-email').textContent=state.facilitator?.email||'';
   window.scrollTo({top:0,behavior:'instant'});
   if(id==='game-screen'||id==='finish-screen'){refreshGame();state.poll=setInterval(refreshGame,4000);if(id==='game-screen')state.timer=setInterval(tick,500);}
-  if(id==='host-screen')state.poll=setInterval(refreshHost,4000);
+  if(id==='host-screen'){state.poll=setInterval(refreshHost,4000);state.timer=setInterval(tickHost,500);tickHost();}
 }
 function setBusy(button,busy){button.disabled=busy;button.setAttribute('aria-busy',String(busy));}
 function renderSavedRooms(){
@@ -75,7 +75,7 @@ async function openHost(host){
   const data=await facApi('host',host.code);state.host=host;state.hostData=data;
   $('#host-title').textContent=data.room.title;$('#round-filter').value=data.room.mode==='guided'?String(data.room.current_round):'';$('#round-control-message').textContent='';
   $('#share-code').textContent=host.code;
-  const link=roomLink(host.code,location.href);$('#share-link').value=link;$('#room-qr').replaceChildren();
+  const link=roomLink(host.code,'https://www.hacerlofc.com/laboratorio/transformacion-en-tension/');$('#share-link').value=link;$('#room-qr').replaceChildren();
   if(window.QRCode)new window.QRCode($('#room-qr'),{text:link,width:160,height:160,colorDark:'#0b1224',colorLight:'#ffffff',correctLevel:window.QRCode.CorrectLevel.M});
   else $('#room-qr').textContent='Usa el enlace directo';
   $('#share-message').textContent='Código, enlace y QR llevan a esta misma sala.';
@@ -119,6 +119,18 @@ async function manageTeam(action,id){
   finally{state.managing=false;if(state.host?.code===code&&state.screen==='host-screen'){renderHost();$('#manage-teams').querySelectorAll('button').forEach(b=>b.disabled=false);}}
 }
 $('#manage-teams').onclick=e=>{const button=e.target.closest('button[data-action]');if(button)manageTeam(button.dataset.action,button.dataset.id);};
+function tickHost(){
+  if(state.screen!=='host-screen'||!state.hostData)return;
+  const room=state.hostData.room,view=$('#host-round-timer');
+  if(room.mode!=='guided'){view.textContent='';return;}
+  if(room.phase==='waiting'){view.textContent='Al abrir la ronda comenzará el contador de 06:00.';return;}
+  if(room.phase==='discussion'){view.textContent='Decisiones cerradas · espacio para conversar.';return;}
+  if(room.phase==='finished'){view.textContent='Simulación finalizada.';return;}
+  const remaining=room.round_deadline?Math.max(0,Math.ceil((Date.parse(room.round_deadline)-Date.now()-(state.hostClockOffset||0))/1000)):0;
+  view.textContent='Tiempo restante para decidir: '+String(Math.floor(remaining/60)).padStart(2,'0')+':'+String(remaining%60).padStart(2,'0')+' · máximo 6 minutos por ronda';
+  view.classList.toggle('urgent',remaining<=60);
+  if(remaining===0&&Date.now()>(state.nextHostExpiryRefresh||0)){state.nextHostExpiryRefresh=Date.now()+2500;refreshHost();}
+}
 function renderRoundControl(room,teams){
  const guided=room.mode==='guided',r=room.current_round||1,phase=room.phase||'open',done=teams.filter(t=>t.round===r&&t.resolved).length;
  $('#round-control').classList.toggle('hidden',!guided);
@@ -129,7 +141,8 @@ function renderRoundControl(room,teams){
  $('#close-round').classList.toggle('hidden',phase!=='open');
  $('#advance-round').classList.toggle('hidden',phase!=='discussion');$('#advance-round').textContent=r===4?'Finalizar simulación':'Abrir ronda '+(r+1);
  $('#advance-round').disabled=state.managing||done!==teams.length||!teams.length;
- if(phase==='discussion'&&done!==teams.length)$('#host-round-status').textContent+=' · Reabre para recibir las decisiones pendientes o gestiona los equipos.';
+ if(phase==='discussion'&&done!==teams.length)$('#host-round-status').textContent+=' · Reabre durante el tiempo restante o espera el cierre automático a los 6 minutos.';
+  tickHost();
 }
 async function controlRound(action){
  if(state.managing||!state.host)return;
@@ -143,9 +156,9 @@ async function controlRound(action){
 $('#open-round').onclick=()=>controlRound('open_round');
 $('#close-round').onclick=()=>controlRound('close_round');
 $('#advance-round').onclick=()=>controlRound('advance_round');
-function guidedBlocked(t){return t.mode==='guided'&&(t.phase!=='open'||t.current_round!==t.round);}
+function guidedBlocked(t){return t.mode==='guided'&&(t.phase!=='open'||t.current_round!==t.round||!t.round_deadline||Date.now()+state.offset>=Date.parse(t.round_deadline));}
 function renderHost(){
-  const {room,teams}=state.hostData;renderManagement(teams);renderRoundControl(room,teams);
+  const {room,teams}=state.hostData;state.hostClockOffset=room.server_now?Date.parse(room.server_now)-Date.now():0;renderManagement(teams);renderRoundControl(room,teams);
   $('#host-status').textContent=`${room.mode==='guided'?'Dirigida':'Autogestionada'} · Ingreso ${room.status==='open'?'abierto':'cerrado'} · Actualización automática cada 4 segundos.`;
   $('#toggle-room').textContent=room.status==='open'?'Cerrar ingreso':'Reabrir ingreso';
   $('#host-team-count').textContent=teams.length;
@@ -184,7 +197,7 @@ function renderGame(){
   $('#agile-badge').textContent=`Agile ${m.agile}/100`;$('#coherence-label').textContent=`${m.coherence}%`;$('#coherence-bar').style.width=`${m.coherence}%`;
   $('#history').innerHTML=t.history.length?t.history.map(decisionCard).join(''):'<p class="hint">Aquí verás las consecuencias de tus decisiones.</p>';
   $('#round-board').innerHTML=t.history.length?`<table><thead><tr><th>Ronda</th><th>Agile</th><th>Coherencia</th><th>Saldo</th><th>Deuda</th><th>Puntaje</th></tr></thead><tbody>${t.history.map(h=>`<tr><td>${h.round}</td><td>${h.agile}</td><td>${h.coherence}%</td><td class="${h.debt?'debt':''}">${h.creditsLeft}</td><td>${h.debt}</td><td>${h.total}</td></tr>`).join('')}</tbody></table>`:'';
-  const guided=t.mode==='guided',blocked=guidedBlocked(t);$('#guided-status').classList.toggle('hidden',!guided);if(guided)$('#guided-status').textContent=t.resolved?'Decisión registrada. Espera a que el facilitador habilite la siguiente ronda.':blocked?(t.phase==='discussion'?'Ronda cerrada. Escucha la conversación; el facilitador puede reabrirla.':'Espera a que el facilitador abra la ronda.'):'Ronda abierta. Toma tu decisión a tu ritmo; el facilitador controla el avance.';
+  const guided=t.mode==='guided',blocked=guidedBlocked(t);$('#guided-status').classList.toggle('hidden',!guided);if(guided)$('#guided-status').textContent=t.resolved?(t.history.at(-1)?.timedOut?'Se agotaron los 6 minutos. Tu ronda se registró sin intervención; espera la siguiente.':'Decisión registrada. Espera a que el facilitador habilite la siguiente ronda.'):blocked?(t.phase==='discussion'?'Ronda cerrada. Escucha la conversación; el facilitador puede reabrirla.':'Espera a que el facilitador abra la ronda.'):'Ronda abierta. Tienes hasta 6 minutos desde que el facilitador la abrió.';
   $('#reason-input').disabled=t.resolved||blocked;$('#reason-count').textContent=`${$('#reason-input').value.length}/180`;$('#execute-btn').disabled=t.resolved||state.busy||blocked;$('#next-btn').classList.toggle('hidden',guided);
   $('#round-footer').classList.toggle('hidden',!t.resolved);
   if(t.resolved){const h=t.history.at(-1);$('#footer-result-title').textContent=h.timedOut?'Tiempo agotado':`Decisión ${h.outcome}`;$('#footer-result-text').textContent=`${h.consequence} ${h.synergies.join(' ')} Agile ${h.agile}/100 · Coherencia ${h.coherence}% · Saldo ${h.creditsLeft}${h.debt?` · Deuda ${h.debt} · Penalización −${h.penalty} puntos`:''}.`;$('#round-debrief').innerHTML=debriefHtml(h);$('#round-talk').textContent=episodes[t.round-1].talk[0];$('#next-btn').textContent=t.round<4?`Continuar a la ronda ${t.round+1}`:'Ver resultado final';}
@@ -201,7 +214,18 @@ function renderLevers(){
 }
 function tick(){
   if(state.screen!=='game-screen'||!state.team)return;
-  const t=state.team;if(t.mode==='guided'){$('#timer-label').textContent=t.resolved?'En espera':guidedBlocked(t)?'Cerrada':'Sin límite automático';$('#timer-pill').classList.remove('urgent');return;}const remaining=t.resolved?0:Math.max(0,Math.ceil((Date.parse(t.deadline)-Date.now()-state.offset)/1000));
+  const t=state.team;if(t.mode==='guided'){
+    const remaining=t.round_deadline?Math.max(0,Math.ceil((Date.parse(t.round_deadline)-Date.now()-state.offset)/1000)):0;
+    const isOpen=t.phase==='open'&&t.current_round===t.round;
+    const expired=isOpen&&remaining===0;
+    $('#timer-label').textContent=t.resolved?'En espera':isOpen?(expired?'00:00':String(Math.floor(remaining/60)).padStart(2,'0')+':'+String(remaining%60).padStart(2,'0')):'Cerrada';
+    $('#timer-pill').classList.toggle('urgent',!t.resolved&&isOpen&&remaining<=60);
+    if(expired&&!t.resolved){
+      if(!$('#execute-btn').disabled){$('#execute-btn').disabled=true;$('#reason-input').disabled=true;renderLevers();$('#guided-status').textContent='Se agotaron los 6 minutos. La ronda se cerrará automáticamente y podrás ver las consecuencias.';}
+      if(Date.now()>(state.nextGuidedExpiryRefresh||0)){state.nextGuidedExpiryRefresh=Date.now()+2500;refreshGame();}
+    }
+    return;
+  }const remaining=t.resolved?0:Math.max(0,Math.ceil((Date.parse(t.deadline)-Date.now()-state.offset)/1000));
   $('#timer-label').textContent=t.resolved?'Ronda cerrada':`${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}`;
   $('#timer-pill').classList.toggle('urgent',!t.resolved&&remaining<=60);
   if(remaining===0&&!t.resolved&&!state.busy&&navigator.onLine&&Date.now()>(state.retryAfter||0))executeDecision(true);
